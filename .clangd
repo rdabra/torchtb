@@ -1,0 +1,51 @@
+CompileFlags:
+  Add: [-Wall, -Wextra, -Wunused, -Wunused-variable]
+
+Diagnostics:
+  ClangTidy:
+    Add:
+      [
+        modernize*,
+        clang-diagnostic-*,
+        clang-analyzer-*,
+        cppcoreguidelines-*,
+        modernize-*,
+        misc-unused-*,
+      ]
+    Remove:
+      [
+        cppcoreguidelines-pro-type-vararg,
+        modernize-use-trailing-return-type,
+        cppcoreguidelines-avoid-magic-numbers,
+        cppcoreguidelines-non-private-member-variables-in-classes,
+        cppcoreguidelines-avoid-c-arrays,
+        modernize-avoid-c-arrays,
+        cppcoreguidelines-pro-bounds-pointer-arithmetic,
+        cppcoreguidelines-owning-memory,
+        cppcoreguidelines-pro-bounds-constant-array-index,
+        cppcoreguidelines-avoid-do-while,
+      ]
+    FastCheckFilter: None
+    CheckOptions:
+      FormatStyle: LLVM,
+      cert-dcl16-c.NewSuffixes: "L;LL;LU;LLU"
+      cert-oop54-cpp.WarnOnlyIfThisHasSuspiciousField: "0"
+      cppcoreguidelines-explicit-virtual-functions.IgnoreDestructors: "1"
+      cppcoreguidelines-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic: "1"
+      google-readability-braces-around-statements.ShortStatementLines: "1"
+      google-readability-function-size.StatementThreshold: "800"
+      google-readability-namespace-comments.ShortNamespaceLines: "10"
+      google-readability-namespace-comments.SpacesBeforeComments: "2"
+      modernize-loop-convert.MaxCopySize: "16"
+      modernize-loop-convert.MinConfidence: reasonable
+      modernize-loop-convert.NamingStyle: CamelCase
+      modernize-pass-by-value.IncludeStyle: llvm
+      modernize-replace-auto-ptr.IncludeStyle: llvm
+      modernize-use-nullptr.NullMacros: "NULL"
+      cppcoreguidelines-macro-usage.AllowedAssertionMacros: "Expect,Ensure"
+
+InlayHints: # Turning off parameter hints (boring)
+  Designators: true
+  Enabled: true
+  ParameterNames: false
+  DeducedTypes: true

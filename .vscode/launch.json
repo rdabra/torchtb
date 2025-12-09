@@ -1,0 +1,58 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "sandbox(lldb)",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/.out/build/debugClang/services/statistics-api/sandbox",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": false,
+      "terminal": "integrated",
+      "sourceLanguages": [
+        "c",
+        "c++"
+      ],
+      "initCommands": [
+        "settings set target.run-args -- your args here"
+      ],
+      "preRunCommands": [
+        "script lldb.debugger.HandleCommand('settings set interpreter.prompt-on-quit false')"
+      ]
+    },
+    {
+      "name": "sandbox(gdb)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/.out/build/debugClang/services/statistics-api/sandbox",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for STL types",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Disable confirm on quit",
+          "text": "set confirm off",
+          "ignoreFailures": true
+        }
+      ],
+      "logging": {
+        "engineLogging": false,
+        "traceResponse": false,
+        "trace": false
+      }
+    }
+  ]
+}

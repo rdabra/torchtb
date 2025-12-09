@@ -1,0 +1,143 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "debugClang",
+      "displayName": "debug-clang",
+      "description": "Clang C++ Compilers",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/.out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/.out/install/${presetName}",
+        "CMAKE_C_COMPILER": "/opt/clang/bin/clang",
+        "CMAKE_CXX_COMPILER": "/opt/clang/bin/clang++",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "BUILD_TESTING": true,
+        "CMAKE_CXX_FLAGS": "-stdlib=libstdc++ -ggdb3 -O0 -DENABLE_CONTRACTS -fno-omit-frame-pointer -Wall -Wunused-variable -Wunused -Wextra -Wpedantic -fsanitize=address,undefined,leak -fno-optimize-sibling-calls",
+        "CMAKE_C_COMPILER_LAUNCHER": "ccache",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+        "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=mold -Wl,--gdb-index",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=mold -Wl,--gdb-index",
+        "CMAKE_MODULE_LINKER_FLAGS": "-fuse-ld=mold -Wl,--gdb-index",
+        "CMAKE_UNITY_BUILD": "ON",
+        "CMAKE_UNITY_BUILD_BATCH_SIZE": "8",
+        "CMAKE_CXX_SCAN_FOR_MODULES": false,
+        "CMAKE_PREFIX_PATH": "/opt/libtorch;/opt/arrow"
+      },
+      "environment": {
+        "CC": "/opt/clang/bin/clang",
+        "CXX": "/opt/clang/bin/clang++",
+        "CCACHE_BASEDIR": "${sourceDir}",
+        "CCACHE_DIR": "/home/roberto/.cache/ccache",
+        "CCACHE_COMPRESS": "1",
+        "CCACHE_MAXSIZE": "30G",
+        "CCACHE_SLOPPINESS": "time_macros,include_file_mtime"
+      }
+    },
+    {
+      "name": "debugGcc",
+      "displayName": "debug-gcc",
+      "description": "Gnu C++ Compilers",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/.out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/.out/install/${presetName}",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS": "-O0 -g3 -ggdb3 -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wconversion -Wunused -fno-optimize-sibling-calls -fsanitize=address,undefined,leak -fno-inline -fstack-protector-strong -fvisibility-inlines-hidden",
+        "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=mold",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=mold",
+        "CMAKE_MODULE_LINKER_FLAGS": "-fuse-ld=mold",
+        "BUILD_TESTING": true,
+        "CMAKE_CXX_SCAN_FOR_MODULES": false,
+        "CMAKE_PREFIX_PATH": "/opt/libtorch;/opt/arrow"
+      },
+      "environment": {
+        "CC": "gcc",
+        "CXX": "g++"
+      }
+    },
+    {
+      "name": "releaseGcc",
+      "displayName": "release-gcc",
+      "description": "Gnu C++ Compilers",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/.out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/.out/install/${presetName}",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS": "-O3 -march=native -finline-functions -fvisibility-inlines-hidden",
+        "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=mold",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=mold",
+        "CMAKE_MODULE_LINKER_FLAGS": "-fuse-ld=mold",
+        "BUILD_TESTING": false,
+        "CMAKE_CXX_SCAN_FOR_MODULES": false,
+        "CMAKE_PREFIX_PATH": "/opt/libtorch_gpu;/opt/arrow"
+      },
+      "environment": {
+        "CC": "gcc",
+        "CXX": "g++"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debugClang",
+      "description": "",
+      "displayName": "debugClang",
+      "jobs": 16,
+      "configurePreset": "debugClang",
+      "targets": [
+        "torchtb_static",
+        "torchtb_shared",
+        "floatcsv2parquet",
+        "torchtb_tests",
+        "sandbox"
+      ]
+    },
+    {
+      "name": "debugGcc",
+      "description": "",
+      "displayName": "debugGcc",
+      "jobs": 16,
+      "configurePreset": "debugGcc",
+      "targets": [
+        "torchtb_static",
+        "torchtb_shared",
+        "floatcsv2parquet",
+        "sandbox"
+      ]
+    },
+    {
+      "name": "releaseGcc",
+      "description": "",
+      "displayName": "releaseGcc",
+      "jobs": 16,
+      "configurePreset": "releaseGcc",
+      "targets": [
+        "torchtb_static",
+        "torchtb_shared",
+        "floatcsv2parquet",
+        "sandbox"
+      ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "testClang",
+      "description": "",
+      "displayName": "Clang(Test)",
+      "configurePreset": "debugClang"
+    },
+    {
+      "name": "testGcc",
+      "description": "",
+      "displayName": "Gcc(Test)",
+      "configurePreset": "releaseGcc"
+    }
+  ]
+}

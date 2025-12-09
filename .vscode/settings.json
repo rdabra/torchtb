@@ -1,0 +1,96 @@
+{
+  "cSpell.language": "en,pt-BR",
+  "cSpell.enabled": true,
+  "editor.autoIndent": "full",
+  "editor.formatOnType": false,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": true,
+  "editor.fontSize": 13.5,
+  "editor.fontFamily": "Monoisome, Dejavu Sans Mono",
+  "terminal.integrated.fontSize": 14,
+  "terminal.integrated.fontFamily": "Iosevka Nerd Font Mono",
+  "[Log]": {
+    "editor.fontSize": 14,
+    "editor.fontFamily": "Iosevka Nerd Font Mono",
+  },
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "clangd.path": "/opt/clang/bin/clangd",
+  "clangd.arguments": [
+    "--compile-commands-dir=${workspaceFolder}/.out/build/debugClang/",
+    "--header-insertion=never",
+    "--background-index",
+    "--pch-storage=memory",
+    "-j=16"
+  ],
+  "cSpell.words": [
+    "tensorflow"
+  ],
+  "testMate.cpp.test.executables": "{build,Build,BUILD,out,Out,OUT,.out}/**/*{test,Test,TEST}*",
+  "github.copilot.enable": {
+    "*": false,
+    "plaintext": false,
+    "markdown": false,
+    "scminput": false,
+    "cpp": false
+  },
+  "github.copilot.nextEditSuggestions.enabled": false,
+  "yaml.schemas": {
+    "https://squidfunk.github.io/mkdocs-material/schema.json": "mkdocs.yml"
+  },
+  "yaml.customTags": [
+    "!ENV scalar",
+    "!ENV sequence",
+    "!relative scalar",
+    "tag:yaml.org,2002:python/name:material.extensions.emoji.to_svg",
+    "tag:yaml.org,2002:python/name:material.extensions.emoji.twemoji",
+    "tag:yaml.org,2002:python/name:pymdownx.superfences.fence_code_format",
+    "tag:yaml.org,2002:python/object/apply:pymdownx.slugs.slugify mapping"
+  ],
+  "C_mantic.caseStyle": "snake_case",
+  "gitlens.currentLine.enabled": false,
+  "editor.tokenColorCustomizations": {
+    "textMateRules": [
+      {
+        "scope": "markup.other.log.error",
+        "settings": {
+          "foreground": "#e60000"
+        }
+      },
+      {
+        "scope": "markup.other.log.warn",
+        "settings": {
+          "foreground": "#c500f7cc"
+        }
+      },
+      {
+        "scope": "markup.other.log.info",
+        "settings": {
+          "foreground": "#2cd3c5"
+        }
+      },
+      {
+        "scope": "markup.other.log.debug",
+        "settings": {
+          "foreground": "#9a9898"
+        }
+      },
+      {
+        "scope": "markup.other.log.highlight",
+        "settings": {
+          "foreground": "#11cc00"
+        }
+      }
+    ]
+  },
+  "sonarlint.analyzerProperties": {
+    "sonar.cxx.compiler.charset": "UTF-8",
+    "sonar.cxx.errorRecoveryEnabled": "true",
+    "sonar.cxx.coverage.reportPath": "coverage/report.xml",
+    "sonar.cxx.cache.enabled": "true",
+    "sonar.cxx.cache.path": ".sonar/cache",
+    "sonar.workerCount": "16",
+    "sonar.exclusions": "**/data/**, **/docs/**, **/nginx/**, **/profiler/**, **/scripts/**"
+  },
+  "sonarlint.pathToCompileCommands": "${workspaceFolder}/.out/build/debugClang/compile_commands.json"
+}
