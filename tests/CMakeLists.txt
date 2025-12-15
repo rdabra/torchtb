@@ -12,6 +12,7 @@ add_executable(
   tConverter.cpp
   tXYMatrix.cpp
   tAnalyticTableNumeric.cpp
+  tTrainingBundle.cpp
 )  
 
 target_precompile_headers(torchtb_tests PRIVATE
