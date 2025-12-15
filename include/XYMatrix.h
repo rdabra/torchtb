@@ -19,7 +19,7 @@ class XYMatrix {
     ~XYMatrix() = default;
 
     template <utl::NumericType T>
-    XYMatrix(ttb::TbNumeric<T> &&data, int last_col_X);
+    XYMatrix(ttb::TbNumeric<T> &&data, int last_X_col);
 
     template <utl::NumericType T>
     XYMatrix(ttb::TbNumeric<T> &&X, ttb::TbNumeric<T> &&Y);
@@ -55,19 +55,6 @@ class XYMatrix {
     void update_X_Y(torch::Tensor &&XY, int last_col_X);
     [[nodiscard]] torch::Tensor reshape(const std::unique_ptr<torch::Tensor> &tensor,
                                         const std::vector<int64_t> &dims) const;
-};
-
-class TrainingBundle {
-  public:
-    TrainingBundle(ttb::XYMatrix &&XY_train, ttb::XYMatrix &&XY_eval)
-        : _XY_train{std::move(XY_train)}, _XY_eval{std::move(XY_eval)} {}
-
-    [[nodiscard]] const ttb::XYMatrix &XY_train() const { return this->_XY_train; }
-    [[nodiscard]] const ttb::XYMatrix &XY_eval() const { return this->_XY_eval; }
-
-  private:
-    ttb::XYMatrix _XY_train;
-    ttb::XYMatrix _XY_eval;
 };
 
 class XYMatrixError : public std::runtime_error {

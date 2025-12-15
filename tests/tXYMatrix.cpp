@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
 
 #include "AnalyticTableNumeric.h"
+#include "TrainingBundle.h"
 #include "XYMatrix.h"
 
 #include <arrow/api.h>
 #include <torch/torch.h>
 
-using ttb::TrainingBundle;
 using ttb::XYMatrix;
 
 namespace {

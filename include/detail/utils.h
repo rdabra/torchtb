@@ -70,5 +70,13 @@ auto new_shp(Args &&...args) -> unp<T> {
   return std::make_shared<T>(std::forward<Args>(args)...);
 }
 
+template <typename T>
+bool is_zero(T value) {
+  if constexpr (std::is_floating_point_v<T>)
+    return std::abs(value) < std::numeric_limits<T>::epsilon();
+
+  return value == 0;
+}
+
 } // namespace utl
 #endif

@@ -1,0 +1,83 @@
+#include "TrainingBundle.h"
+
+std::pair<double, double> ttb::TrainingBundle::min_max_normz(int X_col) {
+  auto &X_train = _XY_train.X();
+
+  if (X_col < 0 || X_col >= X_train.size(1))
+    throw TrainingBundleError("Index out of bounds");
+
+  if (!X_train.is_floating_point())
+    throw TrainingBundleError("Matrices are not floating point");
+
+  double min_val{0.0};
+  double max_val{0.0};
+
+  AT_DISPATCH_FLOATING_TYPES(X_train.scalar_type(), "min_max_norm", [&] -> void {
+    using cpp_type = scalar_t; // C++ type provided by the macro
+    auto a_X_train = X_train.accessor<cpp_type, 2>();
+
+    min_val = static_cast<double>(std::numeric_limits<cpp_type>::max());
+    max_val = static_cast<double>(std::numeric_limits<cpp_type>::lowest());
+
+    for (int64_t i{0}; i < X_train.size(0); ++i) {
+      auto elem = a_X_train[i][X_col];
+      if (elem >= max_val)
+        max_val = elem;
+      if (elem <= min_val)
+        min_val = elem;
+    }
+
+    cpp_type multiplier =
+        utl::is_zero(min_val - max_val) ? 0.0 : static_cast<cpp_type>(1.0 / (max_val - min_val));
+    for (int64_t i{0}; i < X_train.size(0); ++i)
+      a_X_train[i][X_col] = (a_X_train[i][X_col] - min_val) * multiplier;
+
+    auto &X_eval = _XY_eval.X();
+    auto a_X_eval = X_eval.accessor<cpp_type, 2>();
+    for (int64_t i{0}; i < X_eval.size(0); ++i)
+      a_X_eval[i][X_col] = (a_X_eval[i][X_col] - min_val) * multiplier;
+  });
+
+  return {min_val, max_val};
+}
+
+std::pair<double, double> ttb::TrainingBundle::z_score_normz(int X_col) {
+  auto &X_train = _XY_train.X();
+
+  if (X_col < 0 || X_col >= X_train.size(1))
+    throw TrainingBundleError("Index out of bounds");
+
+  if (!X_train.is_floating_point())
+    throw TrainingBundleError("Matrices are not floating point");
+
+  double mean{0.0};
+  double sigma{0.0};
+
+  AT_DISPATCH_FLOATING_TYPES(X_train.scalar_type(), "z_score_norm", [&] -> void {
+    using cpp_type = scalar_t; // C++ type provided by the macro
+    auto a_X_train = X_train.accessor<cpp_type, 2>();
+
+    auto n_rows_train = X_train.size(0);
+    for (int64_t i{0}; i < n_rows_train; ++i)
+      mean += a_X_train[i][X_col];
+    mean /= n_rows_train;
+
+    for (int64_t i{0}; i < n_rows_train; ++i) {
+      auto dif = a_X_train[i][X_col] - mean;
+      sigma += dif * dif;
+    }
+
+    sigma = std::sqrt(sigma / n_rows_train);
+
+    cpp_type multiplier = utl::is_zero(sigma) ? 0.0 : static_cast<cpp_type>(1.0 / sigma);
+    for (int64_t i{0}; i < n_rows_train; ++i)
+      a_X_train[i][X_col] = (a_X_train[i][X_col] - mean) * multiplier;
+
+    auto &X_eval = _XY_eval.X();
+    auto a_X_eval = X_eval.accessor<cpp_type, 2>();
+    for (int64_t i{0}; i < X_eval.size(0); ++i)
+      a_X_eval[i][X_col] = (a_X_eval[i][X_col] - mean) * multiplier;
+  });
+
+  return {mean, sigma};
+}

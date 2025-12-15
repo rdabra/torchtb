@@ -1,20 +1,21 @@
 #include "XYMatrix.h"
 #include "AnalyticTableNumeric.h"
 #include "Converter.h"
+#include "TrainingBundle.h"
 
 #include <algorithm>
 #include <random>
 
 template <utl::NumericType T>
-ttb::XYMatrix::XYMatrix(ttb::AnalyticTableNumeric<T> &&data, int last_col_X) {
+ttb::XYMatrix::XYMatrix(ttb::AnalyticTableNumeric<T> &&data, int last_X_col) {
   auto my_data = std::move(data);
 
-  if (last_col_X < 0 || last_col_X >= my_data.n_cols() - 1)
+  if (last_X_col < 0 || last_X_col >= my_data.n_cols() - 1)
     throw std::runtime_error("Invalid last X column index!");
 
   auto my_data_T = ttb::Converter::torch_tensor<T>(std::move(my_data));
 
-  this->update_X_Y(std::move(my_data_T), last_col_X);
+  this->update_X_Y(std::move(my_data_T), last_X_col);
 };
 
 template <utl::NumericType T>
@@ -31,16 +32,16 @@ ttb::XYMatrix::XYMatrix(ttb::TbNumeric<T> &&X, ttb::TbNumeric<T> &&Y) {
   _Y = utl::new_unp<torch::Tensor>(std::move(Y_T));
 }
 
-ttb::XYMatrix::XYMatrix(torch::Tensor &&data, int last_col_X) {
+ttb::XYMatrix::XYMatrix(torch::Tensor &&data, int last_X_col) {
   auto my_data = std::move(data);
 
   if (my_data.dim() != 2)
     throw std::runtime_error("Tensor is not second order!");
 
-  if (last_col_X < 0 || last_col_X >= my_data.size(1) - 1)
+  if (last_X_col < 0 || last_X_col >= my_data.size(1) - 1)
     throw std::runtime_error("Invalid last X column index!");
 
-  this->update_X_Y(std::move(my_data), last_col_X);
+  this->update_X_Y(std::move(my_data), last_X_col);
 }
 
 ttb::XYMatrix::XYMatrix(torch::Tensor &&X, torch::Tensor &&Y) {

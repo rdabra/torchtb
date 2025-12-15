@@ -7,6 +7,7 @@ set(TORCHTB_SOURCES
   AnalyticTableNumeric.cpp
   Converter.cpp
   XYMatrix.cpp
+  TrainingBundle.cpp
   detail/utils.cpp
 )
 
