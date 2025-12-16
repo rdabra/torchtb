@@ -76,7 +76,7 @@
         "CMAKE_MODULE_LINKER_FLAGS": "-fuse-ld=mold",
         "BUILD_TESTING": false,
         "CMAKE_CXX_SCAN_FOR_MODULES": false,
-        "CMAKE_PREFIX_PATH": "/opt/libtorch_gpu;/opt/arrow"
+        "CMAKE_PREFIX_PATH": "/opt/libtorch;/opt/arrow"
       },
       "environment": {
         "CC": "gcc",
