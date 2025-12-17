@@ -2,6 +2,7 @@
 #include "detail/utils.h"
 
 #include <algorithm>
+#include <arrow/api.h>
 #include <arrow/chunked_array.h>
 #include <arrow/compute/api.h>
 #include <arrow/compute/api_vector.h>
@@ -181,6 +182,33 @@ utl::ReturnCode ttb::AnalyticTable::move_column(int from_index, int to_index) {
   return utl::ReturnCode::Ok;
 }
 
+utl::ReturnCode ttb::AnalyticTable::sort(int col_index, ttb::SortOrder mode) {
+  if (col_index < 0 || col_index >= this->n_cols())
+    throw AnalyticTableError("Index out of bounds");
+
+  /// Required by arrow for some compute functions
+  utl::initialize_arrow_compute();
+
+  auto col_name = this->col_names()[col_index];
+  auto order = mode == ttb::SortOrder::ASC ? arrow::compute::SortOrder::Ascending
+                                           : arrow::compute::SortOrder::Descending;
+  arrow::compute::SortOptions opts{{arrow::compute::SortKey{col_name, order}}};
+
+  auto r_indices = arrow::compute::SortIndices(_arrow_tb, opts);
+  if (!r_indices.ok())
+    return utl::map_status(r_indices.status());
+
+  auto r_datum = arrow::compute::Take(_arrow_tb, r_indices.MoveValueUnsafe(),
+                                      arrow::compute::TakeOptions::NoBoundsCheck());
+
+  if (!r_datum.ok())
+    return utl::map_status(r_datum.status());
+
+  _arrow_tb = r_datum.MoveValueUnsafe().table();
+
+  return utl::ReturnCode::Ok;
+}
+
 namespace one_hot_expand {
 
 utl::shp<arrow::Array> to_array(const ttb::AnalyticTable &col_clone) {
@@ -223,7 +251,7 @@ build_one_hot_col(const utl::shp<arrow::Array> &col_as_array,
 } // namespace one_hot_expand
 
 utl::ReturnCode ttb::AnalyticTable::one_hot_expand(int col_index) {
-  if (col_index < 0 || col_index > this->n_cols())
+  if (col_index < 0 || col_index >= this->n_cols())
     throw AnalyticTableError("Index out of bounds");
 
   auto r_col_clone = this->copy_cols({col_index});

@@ -14,6 +14,7 @@ namespace ttb {
 
 enum class Axis { ROW = 0, COLUMN = 1 };
 
+enum class SortOrder { ASC = 0, DESC = 1 };
 /**
  * @brief Analytics Base Table (ABT), in the sense defined by Kelleher et al. in
  * "Fundamentals of Machine Learning for Predictive Data Analytics".
@@ -42,6 +43,7 @@ class AnalyticTable {
     utl::ReturnCode slice(int64_t row_offset, int64_t row_length);
     utl::ReturnCode reorder_cols(const std::vector<int> &indices);
     utl::ReturnCode move_column(int from_index, int to_index);
+    utl::ReturnCode sort(int col_index, ttb::SortOrder mode = ttb::SortOrder::ASC);
 
     /**
      * @brief Moves the specified column to the rightmost postion and one-hot encode it with

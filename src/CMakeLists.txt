@@ -18,11 +18,12 @@ find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 find_package(Arrow CONFIG REQUIRED)
+find_package(ArrowCompute CONFIG REQUIRED)
 find_package(Parquet CONFIG REQUIRED)
 
 # Aggregating dependencies in a single target 
 add_library(thirdparty_libs INTERFACE)
-target_link_libraries(thirdparty_libs INTERFACE ${TORCH_LIBRARIES} Parquet::parquet_shared Arrow::arrow_shared)
+target_link_libraries(thirdparty_libs INTERFACE ${TORCH_LIBRARIES} Parquet::parquet_shared Arrow::arrow_shared ArrowCompute::arrow_compute_shared)
 
 
 #################################################### Static Library ####################################################

@@ -507,3 +507,116 @@ TEST(AnalyticTable_Test, OutOfRangeIndexFails) {
   auto t = make_cat_table();
   EXPECT_THROW(t.one_hot_expand(99), ttb::AnalyticTableError);
 }
+
+TEST(AnalyticTable_Test, SortsTableAscendingByIntColumn) {
+  auto table = make_simple_table(5);
+  auto rc = table.sort(0, ttb::SortOrder::ASC);
+  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  EXPECT_EQ(table.n_rows(), 5);
+  EXPECT_EQ(table.n_cols(), 2);
+}
+
+TEST(AnalyticTable_Test, SortsTableDescendingByIntColumn) {
+  auto table = make_simple_table(5);
+  auto rc = table.sort(0, ttb::SortOrder::DESC);
+  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  EXPECT_EQ(table.n_rows(), 5);
+  EXPECT_EQ(table.n_cols(), 2);
+}
+
+TEST(AnalyticTable_Test, SortsTableByFloatColumn) {
+  auto table = make_simple_table(5);
+  auto rc = table.sort(1, ttb::SortOrder::ASC);
+  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  EXPECT_EQ(table.n_rows(), 5);
+}
+
+TEST(AnalyticTable_Test, SortDefaultsToAscending) {
+  auto table = make_simple_table(3);
+  auto rc = table.sort(0); // No mode specified, defaults to ASC
+  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+}
+
+TEST(AnalyticTable_Test, SortFailsOnInvalidNegativeIndex) {
+  auto table = make_simple_table(3);
+  EXPECT_THROW(table.sort(-1), ttb::AnalyticTableError);
+}
+
+TEST(AnalyticTable_Test, SortFailsOnInvalidOutOfBoundsIndex) {
+  auto table = make_simple_table(3);
+  EXPECT_THROW(table.sort(99), ttb::AnalyticTableError);
+}
+
+TEST(AnalyticTable_Test, SortPreservesCategoryValues) {
+  auto table = make_cat_table();
+  // Original values: {1, 2, 1, 3}
+
+  auto rc = table.sort(0, ttb::SortOrder::ASC);
+  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+
+  auto tbl = table.arrow_table();
+  auto cat_col = tbl->column(0)->chunk(0);
+  ASSERT_EQ(cat_col->length(), 4);
+
+  // After sorting by category column (ascending), should be: 1, 1, 2, 3
+  auto cat_array = std::static_pointer_cast<arrow::Int64Array>(cat_col);
+  EXPECT_EQ(cat_array->Value(0), 1);
+  EXPECT_EQ(cat_array->Value(1), 1);
+  EXPECT_EQ(cat_array->Value(2), 2);
+  EXPECT_EQ(cat_array->Value(3), 3);
+}
+
+TEST(AnalyticTable_Test, SortDescendingOrder) {
+  auto table = make_cat_table();
+  // Original values: {1, 2, 1, 3}
+
+  auto rc = table.sort(0, ttb::SortOrder::DESC);
+  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+
+  auto tbl = table.arrow_table();
+  auto cat_col = tbl->column(0)->chunk(0);
+  ASSERT_EQ(cat_col->length(), 4);
+
+  // After sorting by category column (descending), should be: 3, 2, 1, 1
+  auto cat_array = std::static_pointer_cast<arrow::Int64Array>(cat_col);
+  EXPECT_EQ(cat_array->Value(0), 3);
+  EXPECT_EQ(cat_array->Value(1), 2);
+  EXPECT_EQ(cat_array->Value(2), 1);
+  EXPECT_EQ(cat_array->Value(3), 1);
+}
+
+TEST(AnalyticTable_Test, SortMaintainsRowIntegrity) {
+  // Create table with paired values to verify row integrity
+  arrow::Int64Builder catb;
+  arrow::FloatBuilder valb;
+  EXPECT_TRUE(catb.AppendValues({3, 1, 2, 1}).ok());
+  EXPECT_TRUE(valb.AppendValues({30.0f, 10.0f, 20.0f, 10.5f}).ok());
+
+  std::shared_ptr<arrow::Array> cat_col, val_col;
+  EXPECT_TRUE(catb.Finish(&cat_col).ok());
+  EXPECT_TRUE(valb.Finish(&val_col).ok());
+  auto schema = arrow::schema(
+      {arrow::field("category", arrow::int64()), arrow::field("value", arrow::float32())});
+  auto tbl = arrow::Table::Make(schema, {cat_col, val_col});
+  ttb::AnalyticTable table{std::move(tbl)};
+
+  auto rc = table.sort(0, ttb::SortOrder::ASC);
+  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+
+  auto sorted_tbl = table.arrow_table();
+  auto sorted_cat = std::static_pointer_cast<arrow::Int64Array>(sorted_tbl->column(0)->chunk(0));
+  auto sorted_val = std::static_pointer_cast<arrow::FloatArray>(sorted_tbl->column(1)->chunk(0));
+
+  // Verify sorted order and row pairing integrity
+  EXPECT_EQ(sorted_cat->Value(0), 1);
+  EXPECT_EQ(sorted_val->Value(0), 10.0f);
+
+  EXPECT_EQ(sorted_cat->Value(1), 1);
+  EXPECT_EQ(sorted_val->Value(1), 10.5f);
+
+  EXPECT_EQ(sorted_cat->Value(2), 2);
+  EXPECT_EQ(sorted_val->Value(2), 20.0f);
+
+  EXPECT_EQ(sorted_cat->Value(3), 3);
+  EXPECT_EQ(sorted_val->Value(3), 30.0f);
+}

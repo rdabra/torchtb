@@ -78,5 +78,7 @@ bool is_zero(T value) {
   return value == 0;
 }
 
+void initialize_arrow_compute();
+
 } // namespace utl
 #endif
