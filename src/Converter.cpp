@@ -45,7 +45,7 @@ torch::Tensor ttb::Converter::torch_tensor(ttb::AnalyticTableNumeric<T> &&data) 
   std::vector<torch::Tensor> tensors;
   for (int i{0}; i < my_data.n_cols(); ++i) {
     auto column = my_data.copy_cols({i});
-    auto arr = column->arrow_table()->column(0)->chunk(0);
+    auto arr = column.arrow_table()->column(0)->chunk(0);
     tensors.emplace_back(torch_tensor::to_tensor<T>(arr));
   }
   my_data.reset();
@@ -55,8 +55,7 @@ torch::Tensor ttb::Converter::torch_tensor(ttb::AnalyticTableNumeric<T> &&data) 
 }
 
 template <utl::NumericType T>
-std::expected<ttb::AnalyticTableNumeric<T>, utl::ReturnCode>
-ttb::Converter::analytic_table(torch::Tensor &&tensor) {
+ttb::AnalyticTableNumeric<T> ttb::Converter::analytic_table(torch::Tensor &&tensor) {
   if (tensor.sizes().size() != 2)
     throw ttb::ConverterError("Tensor is not of second order");
   if (!tensor.device().is_cpu())
@@ -79,7 +78,7 @@ ttb::Converter::analytic_table(torch::Tensor &&tensor) {
 
     auto r_buf = arrow::AllocateBuffer(n_rows * int64_t(sizeof(T)), pool);
     if (!r_buf.ok())
-      return std::unexpected(utl::map_status(r_buf.status()));
+      throw ttb::ConverterError(r_buf.status().ToString());
 
     utl::shp<arrow::Buffer> buf = r_buf.MoveValueUnsafe();
     std::memcpy(buf->mutable_data(), column.data_ptr<T>(), n_rows * sizeof(T));
@@ -97,36 +96,28 @@ ttb::Converter::analytic_table(torch::Tensor &&tensor) {
 };
 
 template <utl::NumericType T>
-std::expected<torch::Tensor, utl::ReturnCode> ttb::Converter::torch_tensor(ttb::CSV_IO &&reader) {
+torch::Tensor ttb::Converter::torch_tensor(ttb::CSV_IO &&reader) {
   auto my_reader = std::move(reader);
 
-  auto r_read = my_reader.read();
-  if (!r_read)
-    return std::unexpected(r_read.error());
+  auto read = my_reader.read_numeric<T>();
 
-  return ttb::Converter::torch_tensor<T>(std::move(r_read.value()));
+  return ttb::Converter::torch_tensor<T>(std::move(read));
 }
 
 template <utl::NumericType T>
-std::expected<torch::Tensor, utl::ReturnCode>
-ttb::Converter::torch_tensor(ttb::Parquet_IO &&reader) {
+torch::Tensor ttb::Converter::torch_tensor(ttb::Parquet_IO &&reader) {
   auto my_reader = std::move(reader);
-  auto r_data = my_reader.read();
-  if (!r_data)
-    return std::unexpected(r_data.error());
+  auto r_data = my_reader.read_numeric<T>();
 
-  return ttb::Converter::torch_tensor<T>(std::move(r_data.value()));
+  return ttb::Converter::torch_tensor<T>(std::move(r_data));
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INSTANTIATE_CONVERTER_FUNCS(T)                                                             \
   template torch::Tensor ttb::Converter::torch_tensor(ttb::AnalyticTableNumeric<T> &&);            \
-  template std::expected<ttb::AnalyticTableNumeric<T>, utl::ReturnCode>                            \
-  ttb::Converter::analytic_table(torch::Tensor &&t);                                               \
-  template std::expected<torch::Tensor, utl::ReturnCode> ttb::Converter::torch_tensor<T>(          \
-      ttb::CSV_IO &&);                                                                             \
-  template std::expected<torch::Tensor, utl::ReturnCode> ttb::Converter::torch_tensor<T>(          \
-      ttb::Parquet_IO &&);
+  template ttb::AnalyticTableNumeric<T> ttb::Converter::analytic_table(torch::Tensor &&t);         \
+  template torch::Tensor ttb::Converter::torch_tensor<T>(ttb::CSV_IO &&);                          \
+  template torch::Tensor ttb::Converter::torch_tensor<T>(ttb::Parquet_IO &&);
 
 INSTANTIATE_CONVERTER_FUNCS(int)
 INSTANTIATE_CONVERTER_FUNCS(int64_t)

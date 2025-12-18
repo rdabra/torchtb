@@ -4,7 +4,7 @@
 
 namespace to_dtype {
 
-utl::ReturnCode cast_table(utl::shp<arrow::Table> &arrow_tb, utl::shp<arrow::DataType> type) {
+void cast_table(utl::shp<arrow::Table> &arrow_tb, utl::shp<arrow::DataType> type) {
   std::vector<utl::shp<arrow::ChunkedArray>> casted_columns;
   std::vector<utl::shp<arrow::Field>> casted_fields;
   for (int i{0}; i < arrow_tb->num_columns(); ++i) {
@@ -17,7 +17,7 @@ utl::ReturnCode cast_table(utl::shp<arrow::Table> &arrow_tb, utl::shp<arrow::Dat
 
     auto casted_datum = arrow::compute::Cast(arrow::Datum(column), cast_options);
     if (!casted_datum.ok())
-      return utl::map_status(casted_datum.status());
+      throw ttb::AnalyticTableNumericError{casted_datum.status().ToString()};
 
     casted_fields.emplace_back(arrow::field(arrow_tb->field(i)->name(), type));
     casted_columns.emplace_back(casted_datum.MoveValueUnsafe().chunked_array());
@@ -26,14 +26,13 @@ utl::ReturnCode cast_table(utl::shp<arrow::Table> &arrow_tb, utl::shp<arrow::Dat
   auto casted_table = arrow::Table::Make(arrow::schema(casted_fields), casted_columns);
 
   arrow_tb = casted_table;
-  return utl::ReturnCode::Ok;
 }
 
 } // namespace to_dtype
 
 template <utl::NumericType T>
-utl::ReturnCode ttb::AnalyticTableNumeric<T>::to_dtype() {
-  return to_dtype::cast_table(_arrow_tb, utl::arrow_dtype<T>());
+void ttb::AnalyticTableNumeric<T>::to_dtype() {
+  to_dtype::cast_table(_arrow_tb, utl::arrow_dtype<T>());
 }
 
 template <utl::NumericType T>
@@ -140,7 +139,7 @@ fragment_columns(const utl::shp<arrow::Table> &arrow_tb) {
     auto chunks = arrow_tb->column(static_cast<int>(j))->chunks();
     auto maybe_arr = arrow::Concatenate(chunks, arrow::default_memory_pool());
     if (!maybe_arr.ok())
-      throw ttb::DataTableNumericError(maybe_arr.status().ToString());
+      throw ttb::AnalyticTableNumericError(maybe_arr.status().ToString());
     auto arr = std::static_pointer_cast<utl::ArrowArrayType<T>>(*maybe_arr);
     resp.emplace_back(std::move(arr));
   }
@@ -186,18 +185,14 @@ std::vector<int64_t> ttb::AnalyticTableNumeric<T>::argmax(Axis axis) const {
   case Axis::COLUMN:
     return argmax::argmax_col<T>(this->_arrow_tb);
   default:
-    throw ttb::DataTableNumericError("Invalid axis");
+    throw ttb::AnalyticTableNumericError("Invalid axis");
   }
 }
 
 template <utl::NumericType T>
-utl::ReturnCode ttb::AnalyticTableNumeric<T>::one_hot_expand(int col_index) {
-  auto res = ttb::AnalyticTable::one_hot_expand(col_index);
-  if (res != utl::ReturnCode::Ok)
-    return res;
+void ttb::AnalyticTableNumeric<T>::one_hot_expand(int col_index) {
+  ttb::AnalyticTable::one_hot_expand(col_index);
   this->to_dtype();
-
-  return res;
 }
 
 template class ttb::AnalyticTableNumeric<int>;

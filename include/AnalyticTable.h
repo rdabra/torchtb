@@ -6,7 +6,6 @@
 
 #include <arrow/type.h>
 #include <cstdint>
-#include <expected>
 #include <optional>
 #include <utility>
 
@@ -36,14 +35,14 @@ class AnalyticTable {
     [[nodiscard]] std::vector<std::string> col_dtypes() const;
     [[nodiscard]] std::optional<int> col_index(std::string name) const;
 
-    utl::ReturnCode remove_col(int index);
-    utl::ReturnCode keep_cols(std::vector<int> indices);
-    utl::ReturnCode append(const AnalyticTable &table, const ttb::Axis &axis);
-    utl::ReturnCode rename_cols(const std::vector<std::string> &names);
-    utl::ReturnCode slice(int64_t row_offset, int64_t row_length);
-    utl::ReturnCode reorder_cols(const std::vector<int> &indices);
-    utl::ReturnCode move_column(int from_index, int to_index);
-    utl::ReturnCode sort(int col_index, ttb::SortOrder mode = ttb::SortOrder::ASC);
+    void remove_col(int index);
+    void keep_cols(std::vector<int> indices);
+    void append(const AnalyticTable &table, const ttb::Axis &axis);
+    void rename_cols(const std::vector<std::string> &names);
+    void slice(int64_t row_offset, int64_t row_length);
+    void reorder_cols(const std::vector<int> &indices);
+    void move_column(int from_index, int to_index);
+    void sort(int col_index, ttb::SortOrder mode = ttb::SortOrder::ASC);
 
     /**
      * @brief Moves the specified column to the rightmost postion and one-hot encode it with
@@ -52,7 +51,7 @@ class AnalyticTable {
      * @param col_index Column to be one-hot encoded
      * @return utl::ReturnCode
      */
-    virtual utl::ReturnCode one_hot_expand(int col_index);
+    virtual void one_hot_expand(int col_index);
 
     /**
      * @brief Extracts the specified column from this table
@@ -60,7 +59,7 @@ class AnalyticTable {
      * @param col_index Index of the column to be removed
      * @return std::expected<ttb::DataTable, utl::ReturnCode>
      */
-    std::expected<ttb::AnalyticTable, utl::ReturnCode> extract_column(int col_index);
+    ttb::AnalyticTable extract_column(int col_index);
 
     /**
      * @brief Extracts the columns to the right of the specified index
@@ -68,7 +67,7 @@ class AnalyticTable {
      * @param col_index Column the right of which other columns are extracted
      * @return std::expected<ttb::DataTable, utl::ReturnCode>
      */
-    std::expected<ttb::AnalyticTable, utl::ReturnCode> right_extract_of(int col_index);
+    ttb::AnalyticTable right_extract_of(int col_index);
 
     /**
      * @brief Returns a row-wise portion of this table
@@ -77,12 +76,10 @@ class AnalyticTable {
      * @param row_length Number of rows to slice (final_index=row_offset + row_length)
      * @return std::expected<ttb::DataTable, utl::ReturnCode>
      */
-    [[nodiscard]] std::expected<ttb::AnalyticTable, utl::ReturnCode>
-    sliced(int64_t row_offset, int64_t row_length) const;
-    [[nodiscard]] std::expected<ttb::AnalyticTable, utl::ReturnCode>
-    copy_cols(std::vector<int> indices) const;
+    [[nodiscard]] ttb::AnalyticTable sliced(int64_t row_offset, int64_t row_length) const;
+    [[nodiscard]] ttb::AnalyticTable copy_cols(std::vector<int> indices) const;
 
-    [[nodiscard]] std::expected<ttb::AnalyticTable, utl::ReturnCode> clone() const;
+    [[nodiscard]] ttb::AnalyticTable clone() const;
 
     void print_head(int64_t n_rows = 20) const;
     void print_tail(int64_t n_rows = 20) const;
@@ -95,8 +92,8 @@ class AnalyticTable {
 
     utl::shp<arrow::Table> _arrow_tb{nullptr};
 
-    utl::ReturnCode bottom_append(const AnalyticTable &table);
-    utl::ReturnCode right_append(const AnalyticTable &table);
+    void bottom_append(const AnalyticTable &table);
+    void right_append(const AnalyticTable &table);
 };
 
 class AnalyticTableError : public std::runtime_error {

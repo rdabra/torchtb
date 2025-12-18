@@ -92,8 +92,7 @@ TEST(AnalyticTable_Test, ReturnsNulloptForMissing) {
 
 TEST(AnalyticTable_Test, RemovesColumnByIndex) {
   auto table = make_simple_table();
-  auto rc = table.remove_col(0);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.remove_col(0);
   EXPECT_EQ(table.n_cols(), 1);
   auto names = table.col_names();
   EXPECT_EQ(names[0], "col_float");
@@ -107,8 +106,7 @@ TEST(AnalyticTable_Test, FailsOnInvalidIndex) {
 
 TEST(AnalyticTable_Test, KeepsSpecifiedColumns) {
   auto table = make_simple_table();
-  auto rc = table.keep_cols({1});
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.keep_cols({1});
   EXPECT_EQ(table.n_cols(), 1);
   auto names = table.col_names();
   EXPECT_EQ(names[0], "col_float");
@@ -116,14 +114,12 @@ TEST(AnalyticTable_Test, KeepsSpecifiedColumns) {
 
 TEST(AnalyticTable_Test, FailsOnInvalidIndices) {
   auto table = make_simple_table();
-  auto rc = table.keep_cols({0, 99});
-  EXPECT_NE(rc, utl::ReturnCode::Ok);
+  EXPECT_THROW(table.keep_cols({0, 99}), ttb::AnalyticTableError);
 }
 
 TEST(AnalyticTable_Test, RenamesAllColumns) {
   auto table = make_simple_table();
-  auto rc = table.rename_cols({"new_a", "new_b"});
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.rename_cols({"new_a", "new_b"});
   auto names = table.col_names();
   ASSERT_EQ(names.size(), 2u);
   EXPECT_EQ(names[0], "new_a");
@@ -137,8 +133,7 @@ TEST(AnalyticTable_Test, FailsOnSizeMismatch) {
 
 TEST(AnalyticTable_Test, SlicesRows) {
   auto table = make_simple_table(10);
-  auto rc = table.slice(2, 5);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.slice(2, 5);
   EXPECT_EQ(table.n_rows(), 5);
   EXPECT_EQ(table.n_cols(), 2);
 }
@@ -151,17 +146,15 @@ TEST(AnalyticTable_Test, FailsOnInvalidRange) {
 TEST(AnalyticTable_Test, ReturnsNewSlicedTable) {
   auto table = make_simple_table(10);
   auto res = table.sliced(1, 3);
-  ASSERT_TRUE(res.has_value());
-  EXPECT_EQ(res->n_rows(), 3);
-  EXPECT_EQ(res->n_cols(), 2);
+  EXPECT_EQ(res.n_rows(), 3);
+  EXPECT_EQ(res.n_cols(), 2);
   // Original unchanged
   EXPECT_EQ(table.n_rows(), 10);
 }
 
 TEST(AnalyticTable_Test, ReordersColumns) {
   auto table = make_simple_table();
-  auto rc = table.reorder_cols({1, 0});
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.reorder_cols({1, 0});
   auto names = table.col_names();
   ASSERT_EQ(names.size(), 2u);
   EXPECT_EQ(names[0], "col_float");
@@ -176,23 +169,21 @@ TEST(AnalyticTable_Test, FailsOnInvalidIndicesReorder) {
 TEST(AnalyticTable_Test, CopiesSpecifiedColumns) {
   auto table = make_simple_table();
   auto res = table.copy_cols({0});
-  ASSERT_TRUE(res.has_value());
-  EXPECT_EQ(res->n_cols(), 1);
-  EXPECT_EQ(res->n_rows(), 3);
-  auto names = res->col_names();
+  EXPECT_EQ(res.n_cols(), 1);
+  EXPECT_EQ(res.n_rows(), 3);
+  auto names = res.col_names();
   EXPECT_EQ(names[0], "col_int");
 }
 
 TEST(AnalyticTable_Test, CreatesIndependentCopy) {
   auto table = make_simple_table();
   auto res = table.clone();
-  ASSERT_TRUE(res.has_value());
-  EXPECT_EQ(res->n_rows(), table.n_rows());
-  EXPECT_EQ(res->n_cols(), table.n_cols());
+  EXPECT_EQ(res.n_rows(), table.n_rows());
+  EXPECT_EQ(res.n_cols(), table.n_cols());
 
   // Modify clone
-  res->remove_col(0);
-  EXPECT_EQ(res->n_cols(), 1);
+  res.remove_col(0);
+  EXPECT_EQ(res.n_cols(), 1);
   // Original unchanged
   EXPECT_EQ(table.n_cols(), 2);
 }
@@ -200,11 +191,10 @@ TEST(AnalyticTable_Test, CreatesIndependentCopy) {
 TEST(AnalyticTable_Test, ExtractsColumnFromIndex) {
   auto table = make_simple_table();
   auto res = table.right_extract_of(0);
-  ASSERT_TRUE(res.has_value());
-  EXPECT_EQ(res->n_cols(), 1);
+  EXPECT_EQ(res.n_cols(), 1);
   EXPECT_THROW(table.right_extract_of(1), ttb::AnalyticTableError);
 
-  auto names = res->col_names();
+  auto names = res.col_names();
   EXPECT_EQ(names[0], "col_float");
   // Original modified
   EXPECT_EQ(table.n_cols(), 1);
@@ -214,8 +204,7 @@ TEST(AnalyticTable_Test, AppendsRowsFromAnotherTable) {
   auto table1 = make_simple_table(2);
   auto table2 = make_simple_table(3);
 
-  auto rc = table1.append(table2, ttb::Axis::ROW);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table1.append(table2, ttb::Axis::ROW);
   EXPECT_EQ(table1.n_rows(), 5);
   EXPECT_EQ(table1.n_cols(), 2);
 }
@@ -224,8 +213,7 @@ TEST(AnalyticTable_Test, AppendsColumnsFromAnotherTable) {
   auto table1 = make_simple_table(3);
   auto table2 = make_simple_table(3);
 
-  auto rc = table1.append(table2, ttb::Axis::COLUMN);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table1.append(table2, ttb::Axis::COLUMN);
   EXPECT_EQ(table1.n_rows(), 3);
   EXPECT_EQ(table1.n_cols(), 4);
 }
@@ -251,8 +239,7 @@ TEST(AnalyticTable_Test, MovesColumnToNewPosition) {
   auto table = make_simple_table(); // has col_int at 0, col_float at 1
 
   // Move col_float (index 1) to position 0
-  auto rc = table.move_column(1, 0);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.move_column(1, 0);
 
   auto names = table.col_names();
   ASSERT_EQ(names.size(), 2u);
@@ -282,8 +269,7 @@ TEST(AnalyticTable_Test, MovesColumnToEnd) {
   ttb::AnalyticTable table{std::move(tbl)};
 
   // Move first column (a) to last position
-  auto rc = table.move_column(0, 2);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.move_column(0, 2);
 
   auto names = table.col_names();
   ASSERT_EQ(names.size(), 3u);
@@ -295,8 +281,7 @@ TEST(AnalyticTable_Test, MovesColumnToEnd) {
 TEST(AnalyticTable_Test, SamePositionSucceeds) {
   auto table = make_simple_table();
 
-  auto rc = table.move_column(0, 0);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.move_column(0, 0);
 
   auto names = table.col_names();
   EXPECT_EQ(names[0], "col_int");
@@ -327,7 +312,6 @@ TEST(AnalyticTable_Test, ExtractsAndRemovesColumn) {
   EXPECT_EQ(table.n_cols(), 2);
 
   auto res = table.extract_column(1); // Extract col_float
-  ASSERT_TRUE(res.has_value());
 
   // Original table should have one less column
   EXPECT_EQ(table.n_cols(), 1);
@@ -335,24 +319,23 @@ TEST(AnalyticTable_Test, ExtractsAndRemovesColumn) {
   EXPECT_EQ(names[0], "col_int");
 
   // Extracted table should have only the extracted column
-  EXPECT_EQ(res->n_cols(), 1);
-  auto extracted_names = res->col_names();
+  EXPECT_EQ(res.n_cols(), 1);
+  auto extracted_names = res.col_names();
   EXPECT_EQ(extracted_names[0], "col_float");
-  EXPECT_EQ(res->n_rows(), table.n_rows());
+  EXPECT_EQ(res.n_rows(), table.n_rows());
 }
 
 TEST(AnalyticTable_Test, ExtractsFirstColumn) {
   auto table = make_simple_table();
 
   auto res = table.extract_column(0);
-  ASSERT_TRUE(res.has_value());
 
   EXPECT_EQ(table.n_cols(), 1);
   auto names = table.col_names();
   EXPECT_EQ(names[0], "col_float");
 
-  EXPECT_EQ(res->n_cols(), 1);
-  auto extracted_names = res->col_names();
+  EXPECT_EQ(res.n_cols(), 1);
+  auto extracted_names = res.col_names();
   EXPECT_EQ(extracted_names[0], "col_int");
 }
 
@@ -378,15 +361,14 @@ TEST(AnalyticTable_Test, ExtractsLastColumn) {
   ttb::AnalyticTable table{std::move(tbl)};
 
   auto res = table.extract_column(2);
-  ASSERT_TRUE(res.has_value());
 
   EXPECT_EQ(table.n_cols(), 2);
   auto names = table.col_names();
   EXPECT_EQ(names[0], "a");
   EXPECT_EQ(names[1], "b");
 
-  EXPECT_EQ(res->n_cols(), 1);
-  auto extracted_names = res->col_names();
+  EXPECT_EQ(res.n_cols(), 1);
+  auto extracted_names = res.col_names();
   EXPECT_EQ(extracted_names[0], "c");
 }
 
@@ -425,10 +407,9 @@ TEST(AnalyticTable_Test, PreservesRowCount) {
   int64_t original_rows = table.n_rows();
 
   auto res = table.extract_column(0);
-  ASSERT_TRUE(res.has_value());
 
   EXPECT_EQ(table.n_rows(), original_rows);
-  EXPECT_EQ(res->n_rows(), original_rows);
+  EXPECT_EQ(res.n_rows(), original_rows);
 }
 
 TEST(AnalyticTable_Test, ExpandsCategoricalColumn) {
@@ -436,8 +417,7 @@ TEST(AnalyticTable_Test, ExpandsCategoricalColumn) {
   int64_t rows_before = t.n_rows();
   int cols_before = t.n_cols();
 
-  auto rc = t.one_hot_expand(0);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  t.one_hot_expand(0);
 
   EXPECT_EQ(t.n_rows(), rows_before);
   EXPECT_GT(t.n_cols(), cols_before); // columns increased
@@ -510,31 +490,27 @@ TEST(AnalyticTable_Test, OutOfRangeIndexFails) {
 
 TEST(AnalyticTable_Test, SortsTableAscendingByIntColumn) {
   auto table = make_simple_table(5);
-  auto rc = table.sort(0, ttb::SortOrder::ASC);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.sort(0, ttb::SortOrder::ASC);
   EXPECT_EQ(table.n_rows(), 5);
   EXPECT_EQ(table.n_cols(), 2);
 }
 
 TEST(AnalyticTable_Test, SortsTableDescendingByIntColumn) {
   auto table = make_simple_table(5);
-  auto rc = table.sort(0, ttb::SortOrder::DESC);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.sort(0, ttb::SortOrder::DESC);
   EXPECT_EQ(table.n_rows(), 5);
   EXPECT_EQ(table.n_cols(), 2);
 }
 
 TEST(AnalyticTable_Test, SortsTableByFloatColumn) {
   auto table = make_simple_table(5);
-  auto rc = table.sort(1, ttb::SortOrder::ASC);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.sort(1, ttb::SortOrder::ASC);
   EXPECT_EQ(table.n_rows(), 5);
 }
 
 TEST(AnalyticTable_Test, SortDefaultsToAscending) {
   auto table = make_simple_table(3);
-  auto rc = table.sort(0); // No mode specified, defaults to ASC
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.sort(0); // No mode specified, defaults to ASC
 }
 
 TEST(AnalyticTable_Test, SortFailsOnInvalidNegativeIndex) {
@@ -551,8 +527,7 @@ TEST(AnalyticTable_Test, SortPreservesCategoryValues) {
   auto table = make_cat_table();
   // Original values: {1, 2, 1, 3}
 
-  auto rc = table.sort(0, ttb::SortOrder::ASC);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.sort(0, ttb::SortOrder::ASC);
 
   auto tbl = table.arrow_table();
   auto cat_col = tbl->column(0)->chunk(0);
@@ -570,8 +545,7 @@ TEST(AnalyticTable_Test, SortDescendingOrder) {
   auto table = make_cat_table();
   // Original values: {1, 2, 1, 3}
 
-  auto rc = table.sort(0, ttb::SortOrder::DESC);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.sort(0, ttb::SortOrder::DESC);
 
   auto tbl = table.arrow_table();
   auto cat_col = tbl->column(0)->chunk(0);
@@ -600,8 +574,7 @@ TEST(AnalyticTable_Test, SortMaintainsRowIntegrity) {
   auto tbl = arrow::Table::Make(schema, {cat_col, val_col});
   ttb::AnalyticTable table{std::move(tbl)};
 
-  auto rc = table.sort(0, ttb::SortOrder::ASC);
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  table.sort(0, ttb::SortOrder::ASC);
 
   auto sorted_tbl = table.arrow_table();
   auto sorted_cat = std::static_pointer_cast<arrow::Int64Array>(sorted_tbl->column(0)->chunk(0));

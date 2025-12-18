@@ -6,7 +6,6 @@
 #include "detail/utils.h"
 
 #include <arrow/table.h>
-#include <expected>
 #include <filesystem>
 #include <utility>
 
@@ -19,18 +18,21 @@ class CSV_IO {
     CSV_IO(std::filesystem::path path, bool has_header = true)
         : _path{std::move(path)}, _has_header{has_header} {};
 
-    std::expected<ttb::AnalyticTable, utl::ReturnCode> read(char separator = ',') const;
+    [[nodiscard]] ttb::AnalyticTable read(char separator = ',') const;
 
     template <utl::NumericType T>
-    std::expected<ttb::AnalyticTableNumeric<T>, utl::ReturnCode>
-    read_numeric(char separator = ',') const;
+    ttb::AnalyticTableNumeric<T> read_numeric(char separator = ',') const;
 
-    [[nodiscard]] utl::ReturnCode write(const ttb::AnalyticTable &table,
-                                        char separator = ',') const;
+    void write(const ttb::AnalyticTable &table, char separator = ',') const;
 
   private:
     std::filesystem::path _path;
     bool _has_header;
+};
+
+class CSV_IOError : public std::runtime_error {
+  public:
+    using std::runtime_error::runtime_error;
 };
 
 } // namespace ttb

@@ -28,7 +28,7 @@ class AnalyticTableNumeric : public ttb::AnalyticTable {
 
     AnalyticTableNumeric(std::unordered_map<std::string, std::vector<T>> &&field_and_data);
 
-    utl::ReturnCode one_hot_expand(int col_index) override;
+    void one_hot_expand(int col_index) override;
 
     /**
      * @brief Finds the index of the max value in specified axis
@@ -47,11 +47,11 @@ class AnalyticTableNumeric : public ttb::AnalyticTable {
 
   private:
     AnalyticTableNumeric() = default;
-    utl::ReturnCode to_dtype();
+    void to_dtype();
     std::shared_ptr<arrow::DataType> _arrow_dtype;
 };
 
-class DataTableNumericError : public std::runtime_error {
+class AnalyticTableNumericError : public std::runtime_error {
   public:
     using std::runtime_error::runtime_error;
 };

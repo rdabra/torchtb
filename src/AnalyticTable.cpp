@@ -46,29 +46,26 @@ int ttb::AnalyticTable::n_cols() const {
   return _arrow_tb->num_columns();
 }
 
-utl::ReturnCode ttb::AnalyticTable::remove_col(int col_index) {
+void ttb::AnalyticTable::remove_col(int col_index) {
   if (col_index < 0 || std::cmp_greater_equal(col_index, this->n_cols()))
     throw AnalyticTableError("col_index out of bounds");
 
   auto aux = _arrow_tb->RemoveColumn(col_index);
   if (!aux.ok())
-    return utl::map_status(aux.status());
+    throw AnalyticTableError(aux.status().ToString());
 
   _arrow_tb = aux.MoveValueUnsafe();
-
-  return utl::ReturnCode::Ok;
 }
 
-utl::ReturnCode ttb::AnalyticTable::keep_cols(std::vector<int> indices) {
+void ttb::AnalyticTable::keep_cols(std::vector<int> indices) {
   auto aux = _arrow_tb->SelectColumns(indices);
   if (!aux.ok())
-    return utl::map_status(aux.status());
-  _arrow_tb = aux.MoveValueUnsafe();
+    throw AnalyticTableError(aux.status().ToString());
 
-  return utl::ReturnCode::Ok;
+  _arrow_tb = aux.MoveValueUnsafe();
 }
 
-utl::ReturnCode ttb::AnalyticTable::bottom_append(const AnalyticTable &table) {
+void ttb::AnalyticTable::bottom_append(const AnalyticTable &table) {
   if (this->n_cols() != table.n_cols())
     throw AnalyticTableError("Number of columns do not match");
 
@@ -76,14 +73,12 @@ utl::ReturnCode ttb::AnalyticTable::bottom_append(const AnalyticTable &table) {
 
   auto resp = arrow::ConcatenateTables({_arrow_tb, table._arrow_tb});
   if (!resp.ok())
-    return utl::map_status(resp.status());
+    throw AnalyticTableError(resp.status().ToString());
 
   this->_arrow_tb = resp.MoveValueUnsafe();
-
-  return utl::ReturnCode::Ok;
 }
 
-utl::ReturnCode ttb::AnalyticTable::right_append(const AnalyticTable &table) {
+void ttb::AnalyticTable::right_append(const AnalyticTable &table) {
   if (this->n_rows() != table.n_rows())
     throw AnalyticTableError("Number of rows do not match");
 
@@ -96,50 +91,45 @@ utl::ReturnCode ttb::AnalyticTable::right_append(const AnalyticTable &table) {
 
     auto aux = resp->AddColumn(resp->num_columns(), field, table._arrow_tb->column(i));
     if (!aux.ok())
-      return utl::map_status(aux.status());
+      throw AnalyticTableError(aux.status().ToString());
+
     resp = aux.MoveValueUnsafe();
   }
 
   this->_arrow_tb = resp;
-
-  return utl::ReturnCode::Ok;
 }
 
-utl::ReturnCode ttb::AnalyticTable::append(const AnalyticTable &table, const ttb::Axis &axis) {
+void ttb::AnalyticTable::append(const AnalyticTable &table, const ttb::Axis &axis) {
   switch (axis) {
   case ttb::Axis::COLUMN:
-    return this->right_append(table);
+    this->right_append(table);
+    return;
   case ttb::Axis::ROW:
-    return this->bottom_append(table);
+    this->bottom_append(table);
+    return;
   default:
-    return utl::ReturnCode::Unknown;
+    return;
   }
 }
 
-utl::ReturnCode ttb::AnalyticTable::rename_cols(const std::vector<std::string> &names) {
+void ttb::AnalyticTable::rename_cols(const std::vector<std::string> &names) {
   if (std::cmp_not_equal(names.size(), _arrow_tb->num_columns()))
     throw AnalyticTableError("Number of columns do not match");
 
   auto r_table = _arrow_tb->RenameColumns(names);
   if (!r_table.ok())
-    return utl::map_status(r_table.status());
+    throw AnalyticTableError(r_table.status().ToString());
 
   _arrow_tb = r_table.MoveValueUnsafe();
-
-  return utl::ReturnCode::Ok;
 }
 
-utl::ReturnCode ttb::AnalyticTable::slice(int64_t row_offset, int64_t row_length) {
-  auto r_sliced = this->sliced(row_offset, row_length);
-  if (!r_sliced)
-    return r_sliced.error();
+void ttb::AnalyticTable::slice(int64_t row_offset, int64_t row_length) {
+  auto sliced = this->sliced(row_offset, row_length);
 
-  _arrow_tb = std::move(r_sliced.value()._arrow_tb);
-
-  return utl::ReturnCode::Ok;
+  _arrow_tb = std::move(sliced._arrow_tb);
 }
 
-utl::ReturnCode ttb::AnalyticTable::reorder_cols(const std::vector<int> &indices) {
+void ttb::AnalyticTable::reorder_cols(const std::vector<int> &indices) {
   if (std::cmp_not_equal(indices.size(), this->n_cols()))
     throw AnalyticTableError("Invalid indices size");
 
@@ -153,19 +143,17 @@ utl::ReturnCode ttb::AnalyticTable::reorder_cols(const std::vector<int> &indices
 
   auto r = _arrow_tb->SelectColumns(indices);
   if (!r.ok())
-    return utl::map_status(r.status());
+    throw AnalyticTableError(r.status().ToString());
 
   _arrow_tb = r.MoveValueUnsafe();
-
-  return utl::ReturnCode::Ok;
 }
 
-utl::ReturnCode ttb::AnalyticTable::move_column(int from_index, int to_index) {
+void ttb::AnalyticTable::move_column(int from_index, int to_index) {
   auto n_cols = this->n_cols();
   if (from_index < 0 || to_index < 0 || to_index >= n_cols || from_index >= n_cols)
     throw AnalyticTableError("indices out of bounds");
   if (from_index == to_index)
-    return utl::ReturnCode::Ok;
+    return;
 
   std::vector<int> indexes{std::from_range, std::views::iota(0, n_cols)};
 
@@ -178,11 +166,9 @@ utl::ReturnCode ttb::AnalyticTable::move_column(int from_index, int to_index) {
   }
 
   this->reorder_cols(indexes);
-
-  return utl::ReturnCode::Ok;
 }
 
-utl::ReturnCode ttb::AnalyticTable::sort(int col_index, ttb::SortOrder mode) {
+void ttb::AnalyticTable::sort(int col_index, ttb::SortOrder mode) {
   if (col_index < 0 || col_index >= this->n_cols())
     throw AnalyticTableError("Index out of bounds");
 
@@ -196,17 +182,15 @@ utl::ReturnCode ttb::AnalyticTable::sort(int col_index, ttb::SortOrder mode) {
 
   auto r_indices = arrow::compute::SortIndices(_arrow_tb, opts);
   if (!r_indices.ok())
-    return utl::map_status(r_indices.status());
+    throw AnalyticTableError(r_indices.status().ToString());
 
   auto r_datum = arrow::compute::Take(_arrow_tb, r_indices.MoveValueUnsafe(),
                                       arrow::compute::TakeOptions::NoBoundsCheck());
 
   if (!r_datum.ok())
-    return utl::map_status(r_datum.status());
+    throw AnalyticTableError(r_datum.status().ToString());
 
   _arrow_tb = r_datum.MoveValueUnsafe().table();
-
-  return utl::ReturnCode::Ok;
 }
 
 namespace one_hot_expand {
@@ -223,19 +207,19 @@ utl::shp<arrow::Array> to_array(const ttb::AnalyticTable &col_clone) {
   return column;
 }
 
-std::expected<utl::shp<arrow::Array>, utl::ReturnCode>
-build_one_hot_col(const utl::shp<arrow::Array> &col_as_array,
-                  const utl::shp<arrow::Scalar> &distinct_value) {
+utl::shp<arrow::Array> build_one_hot_col(const utl::shp<arrow::Array> &col_as_array,
+                                         const utl::shp<arrow::Scalar> &distinct_value) {
   arrow::Int32Builder builder(arrow::default_memory_pool());
   auto n_rows = col_as_array->length();
   auto status = builder.Resize(n_rows);
   if (!status.ok())
-    return std::unexpected(utl::map_status(status));
+    throw ttb::AnalyticTableError(status.ToString());
 
   for (int64_t i{0}; i < n_rows; ++i) {
     auto r_value = col_as_array->GetScalar(i);
     if (!r_value.ok())
-      return std::unexpected(utl::map_status(r_value.status()));
+      throw ttb::AnalyticTableError(r_value.status().ToString());
+
     auto value = r_value.MoveValueUnsafe();
     auto flag = value->Equals(*distinct_value) ? 1 : 0;
     builder.UnsafeAppend(flag);
@@ -243,21 +227,19 @@ build_one_hot_col(const utl::shp<arrow::Array> &col_as_array,
 
   auto r_array = builder.Finish();
   if (!r_array.ok())
-    return std::unexpected(utl::map_status(r_array.status()));
+    throw ttb::AnalyticTableError(r_array.status().ToString());
 
   return r_array.ValueUnsafe();
 };
 
 } // namespace one_hot_expand
 
-utl::ReturnCode ttb::AnalyticTable::one_hot_expand(int col_index) {
+void ttb::AnalyticTable::one_hot_expand(int col_index) {
   if (col_index < 0 || col_index >= this->n_cols())
     throw AnalyticTableError("Index out of bounds");
 
-  auto r_col_clone = this->copy_cols({col_index});
-  if (!r_col_clone)
-    return r_col_clone.error();
-  auto col_array = one_hot_expand::to_array(r_col_clone.value());
+  auto col_clone = this->copy_cols({col_index});
+  auto col_array = one_hot_expand::to_array(col_clone);
   auto field_names = arrow::compute::Unique(col_array).ValueOrDie();
 
   auto n_fields = field_names->length();
@@ -270,28 +252,23 @@ utl::ReturnCode ttb::AnalyticTable::one_hot_expand(int col_index) {
   for (int64_t j{0}; j < n_fields; ++j) {
     auto r_field_name = field_names->GetScalar(j);
     if (!r_field_name.ok())
-      return utl::map_status(r_field_name.status());
+      throw AnalyticTableError(r_field_name.status().ToString());
 
     auto field_name = r_field_name.ValueUnsafe();
     fields.emplace_back(arrow::field(prefix + field_name->ToString(), arrow::int32()));
 
-    auto r_one_hot_col = one_hot_expand::build_one_hot_col(col_array, field_name);
-    if (!r_one_hot_col)
-      return r_one_hot_col.error();
+    auto one_hot_col = one_hot_expand::build_one_hot_col(col_array, field_name);
 
-    one_hot_cols.emplace_back(std::move(r_one_hot_col.value()));
+    one_hot_cols.emplace_back(std::move(one_hot_col));
   }
 
   auto schema = arrow::schema(fields);
   ttb::AnalyticTable table{arrow::Table::Make(schema, one_hot_cols, col_array->length())};
   this->append(table, ttb::Axis::COLUMN);
   this->remove_col(col_index);
-
-  return utl::ReturnCode::Ok;
 }
 
-std::expected<ttb::AnalyticTable, utl::ReturnCode>
-ttb::AnalyticTable::extract_column(int col_index) {
+ttb::AnalyticTable ttb::AnalyticTable::extract_column(int col_index) {
   auto ncols = this->n_cols();
   if (ncols == 1)
     throw AnalyticTableError("Table has one column");
@@ -304,8 +281,7 @@ ttb::AnalyticTable::extract_column(int col_index) {
   return this->right_extract_of(ncols - 2);
 }
 
-std::expected<ttb::AnalyticTable, utl::ReturnCode>
-ttb::AnalyticTable::sliced(int64_t row_offset, int64_t row_length) const {
+ttb::AnalyticTable ttb::AnalyticTable::sliced(int64_t row_offset, int64_t row_length) const {
   if (row_offset < 0 || row_length < 0 ||
       std::cmp_greater_equal(row_offset + row_length, this->n_rows()))
     throw AnalyticTableError("Invalid parameters");
@@ -313,7 +289,7 @@ ttb::AnalyticTable::sliced(int64_t row_offset, int64_t row_length) const {
   auto sliced_view = _arrow_tb->Slice(row_offset, row_length);
   auto r_sliced_cp = sliced_view->CombineChunks(arrow::default_memory_pool());
   if (!r_sliced_cp.ok())
-    return std::unexpected(utl::map_status(r_sliced_cp.status()));
+    throw ttb::AnalyticTableError(r_sliced_cp.status().ToString());
 
   return AnalyticTable{r_sliced_cp.MoveValueUnsafe()};
 }
@@ -336,17 +312,15 @@ void ttb::AnalyticTable::reset() {
   _arrow_tb.reset();
 }
 
-std::expected<ttb::AnalyticTable, utl::ReturnCode>
-ttb::AnalyticTable::copy_cols(std::vector<int> indices) const {
-  auto aux = _arrow_tb->SelectColumns(indices);
-  if (!aux.ok())
-    return std::unexpected(utl::map_status(aux.status()));
+ttb::AnalyticTable ttb::AnalyticTable::copy_cols(std::vector<int> indices) const {
+  auto r_table = _arrow_tb->SelectColumns(indices);
+  if (!r_table.ok())
+    throw ttb::AnalyticTableError(r_table.status().ToString());
 
-  return AnalyticTable{aux.MoveValueUnsafe()};
+  return AnalyticTable{r_table.MoveValueUnsafe()};
 }
 
-std::expected<ttb::AnalyticTable, utl::ReturnCode>
-ttb::AnalyticTable::right_extract_of(int col_index) {
+ttb::AnalyticTable ttb::AnalyticTable::right_extract_of(int col_index) {
   if (col_index < 0 || col_index > this->n_cols() - 2)
     throw AnalyticTableError("col_index out of bounds");
 
@@ -356,35 +330,38 @@ ttb::AnalyticTable::right_extract_of(int col_index) {
 
   auto r_extracted = _arrow_tb->SelectColumns(indices);
   if (!r_extracted.ok())
-    return std::unexpected(utl::map_status(r_extracted.status()));
+    throw AnalyticTableError(r_extracted.status().ToString());
 
   auto last_index = col_index + 1;
   while (this->n_cols() > last_index) {
     auto aux = _arrow_tb->RemoveColumn(last_index);
     if (!aux.ok())
-      return std::unexpected(utl::map_status(aux.status()));
+      throw AnalyticTableError(aux.status().ToString());
+
     _arrow_tb = aux.MoveValueUnsafe();
   }
 
   return AnalyticTable{r_extracted.MoveValueUnsafe()};
 }
 
-std::expected<ttb::AnalyticTable, utl::ReturnCode> ttb::AnalyticTable::clone() const {
+ttb::AnalyticTable ttb::AnalyticTable::clone() const {
   auto n_rows = this->n_rows();
 
   arrow::Int64Builder b;
   auto status = b.Resize(n_rows);
   if (!status.ok())
-    return std::unexpected(utl::map_status(status));
+    throw AnalyticTableError(status.ToString());
+
   for (int64_t i{0}; i < n_rows; ++i)
     b.UnsafeAppend(i);
   auto r_indices = b.Finish();
   if (!r_indices.ok())
-    return std::unexpected(utl::map_status(r_indices.status()));
+    throw AnalyticTableError(r_indices.status().ToString());
 
   auto r_datum = arrow::compute::Take(_arrow_tb, r_indices.ValueUnsafe());
   if (!r_datum.ok())
-    return std::unexpected(utl::map_status(r_datum.status()));
+    throw AnalyticTableError(r_datum.status().ToString());
+
   auto table = r_datum.MoveValueUnsafe();
 
   auto aux = table.table();

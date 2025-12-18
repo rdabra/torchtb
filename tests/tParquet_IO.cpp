@@ -77,10 +77,7 @@ class TempFile {
 TEST(Parquet_IO_Test, MissingFileFails) {
   auto path = tparquet_io::unique_parquet("missing");
   ttb::Parquet_IO io(path);
-  auto r = io.read();
-  EXPECT_FALSE(r.has_value());
-  if (!r.has_value())
-    EXPECT_NE(r.error(), utl::ReturnCode::Ok);
+  EXPECT_THROW(auto x = io.read(), ttb::Parquet_IOError);
 }
 
 TEST(Parquet_IO_Test, RoundTripTable) {
@@ -88,15 +85,13 @@ TEST(Parquet_IO_Test, RoundTripTable) {
   auto table = tparquet_io::make_table();
 
   ttb::Parquet_IO io(path);
-  auto wrc = io.write(table);
-  EXPECT_EQ(wrc, utl::ReturnCode::Ok);
+  io.write(table);
   ASSERT_TRUE(fs::exists(path));
 
   auto r = io.read();
-  ASSERT_TRUE(r.has_value());
-  EXPECT_EQ(r->n_rows(), 3);
-  EXPECT_EQ(r->n_cols(), 2);
-  auto names = r->col_names();
+  EXPECT_EQ(r.n_rows(), 3);
+  EXPECT_EQ(r.n_cols(), 2);
+  auto names = r.col_names();
   ASSERT_EQ(names.size(), 2u);
   EXPECT_EQ(names[0], "feat");
   EXPECT_EQ(names[1], "label");
@@ -109,15 +104,13 @@ TEST(Parquet_IO_Test, WriteThenReadNumericFloat) {
       torch::tensor({{1.0f, 5.0f}, {2.0f, 6.0f}, {3.0f, 7.0f}}, torch::dtype(torch::kFloat32));
 
   ttb::Parquet_IO io(path);
-  auto wrc = io.write<float>(std::move(t));
-  EXPECT_EQ(wrc, utl::ReturnCode::Ok);
+  io.write<float>(std::move(t));
   ASSERT_TRUE(fs::exists(path));
 
   auto rn = io.read_numeric<float>();
-  ASSERT_TRUE(rn.has_value());
-  EXPECT_EQ(rn->n_rows(), 3);
+  EXPECT_EQ(rn.n_rows(), 3);
   // Assuming each column stored separately
-  EXPECT_GE(rn->n_cols(), 1);
+  EXPECT_GE(rn.n_cols(), 1);
 }
 
 TEST(Parquet_IO_Test, FallbackToGenericIfNotPureNumeric) {
@@ -132,18 +125,12 @@ TEST(Parquet_IO_Test, FallbackToGenericIfNotPureNumeric) {
   ttb::AnalyticTable dt{std::move(tbl)};
 
   ttb::Parquet_IO io(path);
-  auto wrc = io.write(dt);
-  EXPECT_EQ(wrc, utl::ReturnCode::Ok);
+  io.write(dt);
   ASSERT_TRUE(fs::exists(path));
 
   auto rn = io.read_numeric<int>(); // depends on template support
-  if (rn.has_value()) {
-    EXPECT_EQ(rn->n_rows(), 3);
-    EXPECT_EQ(rn->n_cols(), 1);
-  } else {
-    // If implementation rejects int64_t path
-    EXPECT_NE(rn.error(), utl::ReturnCode::Ok);
-  }
+  EXPECT_EQ(rn.n_rows(), 3);
+  EXPECT_EQ(rn.n_cols(), 1);
 }
 
 namespace fs = std::filesystem;
@@ -154,8 +141,7 @@ TEST(Parquet_IO_Test, WritesXYMatrixToFile) {
   auto xy = tparquet_io::make_test_xy_matrix(10, 5, 2);
   ttb::Parquet_IO writer(temp.path());
 
-  auto rc = writer.write<float>(std::move(xy));
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  writer.write<float>(std::move(xy));
   EXPECT_TRUE(fs::exists(temp.path()));
 }
 
@@ -165,17 +151,14 @@ TEST(Parquet_IO_Test, WrittenFileIsReadable) {
   auto xy = tparquet_io::make_test_xy_matrix(20, 3, 4);
   ttb::Parquet_IO writer(temp.path());
 
-  auto rc_write = writer.write<float>(std::move(xy));
-  ASSERT_EQ(rc_write, utl::ReturnCode::Ok);
+  writer.write<float>(std::move(xy));
 
   // Read back and verify
   ttb::Parquet_IO reader(temp.path());
   auto result = reader.read();
-  ASSERT_TRUE(result.has_value());
 
-  auto &table = result.value();
-  EXPECT_EQ(table.n_rows(), 20);
-  EXPECT_EQ(table.n_cols(), 7); // 3 + 4 columns
+  EXPECT_EQ(result.n_rows(), 20);
+  EXPECT_EQ(result.n_cols(), 7); // 3 + 4 columns
 }
 
 TEST(Parquet_IO_Test, PreservesDataDimensions) {
@@ -188,16 +171,14 @@ TEST(Parquet_IO_Test, PreservesDataDimensions) {
   auto xy = tparquet_io::make_test_xy_matrix(rows, x_cols, y_cols);
   ttb::Parquet_IO writer(temp.path());
 
-  auto rc = writer.write<float>(std::move(xy));
-  ASSERT_EQ(rc, utl::ReturnCode::Ok);
+  writer.write<float>(std::move(xy));
 
   // Read and verify dimensions
   ttb::Parquet_IO reader(temp.path());
   auto result = reader.read();
-  ASSERT_TRUE(result.has_value());
 
-  EXPECT_EQ(result->n_rows(), rows);
-  EXPECT_EQ(result->n_cols(), x_cols + y_cols);
+  EXPECT_EQ(result.n_rows(), rows);
+  EXPECT_EQ(result.n_cols(), x_cols + y_cols);
 }
 
 TEST(Parquet_IO_Test, WorksWithDifferentNumericTypes) {
@@ -210,8 +191,7 @@ TEST(Parquet_IO_Test, WorksWithDifferentNumericTypes) {
     ttb::XYMatrix xy(std::move(X), std::move(Y));
 
     ttb::Parquet_IO writer(temp.path());
-    auto rc = writer.write<int>(std::move(xy));
-    EXPECT_EQ(rc, utl::ReturnCode::Ok);
+    writer.write<int>(std::move(xy));
   }
 
   // Test with double
@@ -222,8 +202,7 @@ TEST(Parquet_IO_Test, WorksWithDifferentNumericTypes) {
 
     tparquet_io::TempFile temp2("test_xy_double.parquet");
     ttb::Parquet_IO writer(temp2.path());
-    auto rc = writer.write<double>(std::move(xy));
-    EXPECT_EQ(rc, utl::ReturnCode::Ok);
+    writer.write<double>(std::move(xy));
   }
 }
 
@@ -235,16 +214,12 @@ TEST(Parquet_IO_Test, HandlesEmptyXYMatrix) {
   ttb::XYMatrix xy(std::move(X), std::move(Y));
 
   ttb::Parquet_IO writer(temp.path());
-  auto rc = writer.write<float>(std::move(xy));
-
-  // Should succeed (writing empty table is valid)
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  writer.write<float>(std::move(xy));
 
   // Verify by reading back
   ttb::Parquet_IO reader(temp.path());
   auto result = reader.read();
-  ASSERT_TRUE(result.has_value());
-  EXPECT_EQ(result->n_rows(), 0);
+  EXPECT_EQ(result.n_rows(), 0);
 }
 
 TEST(Parquet_IO_Test, OverwritesExistingFile) {
@@ -254,24 +229,21 @@ TEST(Parquet_IO_Test, OverwritesExistingFile) {
   {
     auto xy1 = tparquet_io::make_test_xy_matrix(10, 2, 2);
     ttb::Parquet_IO writer(temp.path());
-    auto rc = writer.write<float>(std::move(xy1));
-    ASSERT_EQ(rc, utl::ReturnCode::Ok);
+    writer.write<float>(std::move(xy1));
   }
 
   // Overwrite with different dimensions
   {
     auto xy2 = tparquet_io::make_test_xy_matrix(5, 3, 1);
     ttb::Parquet_IO writer(temp.path());
-    auto rc = writer.write<float>(std::move(xy2));
-    EXPECT_EQ(rc, utl::ReturnCode::Ok);
+    writer.write<float>(std::move(xy2));
   }
 
   // Verify the second write succeeded
   ttb::Parquet_IO reader(temp.path());
   auto result = reader.read();
-  ASSERT_TRUE(result.has_value());
-  EXPECT_EQ(result->n_rows(), 5);
-  EXPECT_EQ(result->n_cols(), 4); // 3 + 1
+  EXPECT_EQ(result.n_rows(), 5);
+  EXPECT_EQ(result.n_cols(), 4); // 3 + 1
 }
 
 TEST(Parquet_IO_Test, FailsWithInvalidPath) {
@@ -280,8 +252,7 @@ TEST(Parquet_IO_Test, FailsWithInvalidPath) {
   auto xy = tparquet_io::make_test_xy_matrix(5, 2, 2);
   ttb::Parquet_IO writer(invalid_path);
 
-  auto rc = writer.write<float>(std::move(xy));
-  EXPECT_NE(rc, utl::ReturnCode::Ok);
+  EXPECT_THROW(writer.write<float>(std::move(xy)), ttb::Parquet_IOError);
 }
 
 TEST(Parquet_IO_Test, PreservesColumnOrder) {
@@ -293,19 +264,16 @@ TEST(Parquet_IO_Test, PreservesColumnOrder) {
   ttb::XYMatrix xy(std::move(X), std::move(Y));
 
   ttb::Parquet_IO writer(temp.path());
-  auto rc = writer.write<float>(std::move(xy));
-  ASSERT_EQ(rc, utl::ReturnCode::Ok);
+  writer.write<float>(std::move(xy));
 
   // Read back and verify column order (X columns before Y columns)
   ttb::Parquet_IO reader(temp.path());
   auto result = reader.read();
-  ASSERT_TRUE(result.has_value());
 
-  auto &table = result.value();
-  EXPECT_EQ(table.n_cols(), 3);
+  EXPECT_EQ(result.n_cols(), 3);
 
   // Column names should reflect X_0, X_1, Y_0 or similar pattern
-  auto names = table.col_names();
+  auto names = result.col_names();
   ASSERT_EQ(names.size(), 3);
 }
 
@@ -319,8 +287,7 @@ TEST(Parquet_IO_Test, WorksWithLargeXYMatrix) {
   auto xy = tparquet_io::make_test_xy_matrix(rows, x_cols, y_cols);
   ttb::Parquet_IO writer(temp.path());
 
-  auto rc = writer.write<float>(std::move(xy));
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  writer.write<float>(std::move(xy));
 
   // Verify file size is reasonable (should be > 0)
   EXPECT_GT(fs::file_size(temp.path()), 0);

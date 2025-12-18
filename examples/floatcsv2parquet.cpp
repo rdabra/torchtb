@@ -27,16 +27,12 @@ int main(int argc, char *argv[]) {
   std::cout << "Reading input file..." << std::endl;
   auto in_file = ttb::CSV_IO{in_path, false};
   auto r_in_data = in_file.read();
-  if (!r_in_data)
-    throw std::runtime_error("Could not read input file");
 
-  auto T = ttb::Converter::torch_tensor<float>(std::move(r_in_data.value()));
+  auto T = ttb::Converter::torch_tensor<float>(std::move(r_in_data));
 
   std::cout << "Writing output file..." << std::endl;
   auto out_file = ttb::Parquet_IO{out_path};
-  auto r_write = out_file.write<float>(std::move(T));
-  if (r_write != utl::ReturnCode::Ok)
-    throw std::runtime_error("Could not write output file");
+  out_file.write<float>(std::move(T));
 
   auto time2 = std::chrono::system_clock::now();
 

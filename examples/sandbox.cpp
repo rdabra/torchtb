@@ -17,10 +17,7 @@ int main() {
   std::cout << "result[0]: " << result[0] << std::endl;
 
   ttb::Parquet_IO p{"/home/roberto/my_works/personal/torchtb/data/test_T.parquet"};
-  auto resp = p.write(tb);
-
-  if (resp != utl::ReturnCode::Ok)
-    std::cout << "PAU\n";
+  p.write(tb);
 
   auto time2 = std::chrono::system_clock::now();
 

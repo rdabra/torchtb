@@ -10,7 +10,6 @@
 #include "Parquet_IO.h"
 #include <ATen/core/TensorBody.h>
 #include <arrow/array/array_base.h>
-#include <expected>
 #include <torch/data/dataloader.h>
 
 namespace ttb {
@@ -28,14 +27,13 @@ class Converter {
     static torch::Tensor torch_tensor(ttb::AnalyticTableNumeric<T> &&data);
 
     template <utl::NumericType T>
-    static std::expected<torch::Tensor, utl::ReturnCode> torch_tensor(ttb::CSV_IO &&reader);
+    static torch::Tensor torch_tensor(ttb::CSV_IO &&reader);
 
     template <utl::NumericType T>
-    static std::expected<torch::Tensor, utl::ReturnCode> torch_tensor(ttb::Parquet_IO &&reader);
+    static torch::Tensor torch_tensor(ttb::Parquet_IO &&reader);
 
     template <utl::NumericType T>
-    static std::expected<ttb::AnalyticTableNumeric<T>, utl::ReturnCode>
-    analytic_table(torch::Tensor &&tensor);
+    static ttb::AnalyticTableNumeric<T> analytic_table(torch::Tensor &&tensor);
 };
 
 class ConverterError : public std::runtime_error {

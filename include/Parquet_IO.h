@@ -23,21 +23,26 @@ class Parquet_IO {
   public:
     Parquet_IO(std::filesystem::path path) : _path{std::move(path)} {};
 
-    [[nodiscard]] std::expected<ttb::AnalyticTable, utl::ReturnCode> read() const;
+    [[nodiscard]] ttb::AnalyticTable read() const;
 
     template <utl::NumericType T>
-    [[nodiscard]] std::expected<ttb::AnalyticTableNumeric<T>, utl::ReturnCode> read_numeric() const;
+    [[nodiscard]] ttb::AnalyticTableNumeric<T> read_numeric() const;
 
-    [[nodiscard]] utl::ReturnCode write(const ttb::AnalyticTable &table) const;
-
-    template <utl::NumericType T>
-    utl::ReturnCode write(torch::Tensor &&tensor) const;
+    void write(const ttb::AnalyticTable &table) const;
 
     template <utl::NumericType T>
-    utl::ReturnCode write(ttb::XYMatrix &&xy_matrix) const;
+    void write(torch::Tensor &&tensor) const;
+
+    template <utl::NumericType T>
+    void write(ttb::XYMatrix &&xy_matrix) const;
 
   private:
     std::filesystem::path _path;
+};
+
+class Parquet_IOError : public std::runtime_error {
+  public:
+    using std::runtime_error::runtime_error;
 };
 
 } // namespace ttb

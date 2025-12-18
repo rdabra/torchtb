@@ -246,8 +246,7 @@ TEST(AnalyticTableNumeric_Test, ExpandsIntegerColumn) {
   TbNumeric<int> tb{std::move(aux)};
   int original_cols = tb.n_cols();
 
-  auto rc = tb.one_hot_expand(0); // Expand "category" column
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  tb.one_hot_expand(0); // Expand "category" column
 
   // Should add one-hot columns and remove original
   EXPECT_GT(tb.n_cols(), original_cols);

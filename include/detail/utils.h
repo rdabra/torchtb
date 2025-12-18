@@ -8,21 +8,6 @@ namespace utl {
 
 static const std::string LIBRARY_NAME{"torchtb"};
 
-enum class ReturnCode : int {
-  Ok = 0,
-  OutOfMemory = 1,
-  KeyError = 2,
-  TypeError = 3,
-  Invalid = 4,
-  IOError = 5,
-  CapacityError = 6,
-  IndexError = 7,
-  Cancelled = 8,
-  NotImplemented = 10,
-  SerializationError = 11,
-  Unknown = 12
-};
-
 template <typename T>
 concept NumericType = std::same_as<T, int> || std::same_as<T, int64_t> || std::same_as<T, float> ||
                       std::same_as<T, double>;
@@ -45,8 +30,6 @@ using ArrowArrayType = typename arrow::TypeTraits<ArrowType<T>>::ArrayType;
 
 template <utl::NumericType T>
 using ArrowBuilderType = typename arrow::TypeTraits<ArrowType<T>>::BuilderType;
-
-ReturnCode map_status(const arrow::Status &s);
 
 std::string to_lower(std::string word);
 std::string to_upper(std::string word);

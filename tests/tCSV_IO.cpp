@@ -57,11 +57,10 @@ TEST(CSV_IO_Test, WithHeader_Succeeds) {
 
   ttb::CSV_IO reader(path, /*has_header=*/true);
   auto res = reader.read();
-  ASSERT_TRUE(res.has_value()) << "Read failed with code";
-  EXPECT_EQ(res->n_rows(), 2);
-  EXPECT_EQ(res->n_cols(), 2);
+  EXPECT_EQ(res.n_rows(), 2);
+  EXPECT_EQ(res.n_cols(), 2);
 
-  auto names = res->col_names();
+  auto names = res.col_names();
   ASSERT_EQ(names.size(), 2u);
   EXPECT_EQ(names[0], "a");
   EXPECT_EQ(names[1], "b");
@@ -75,9 +74,8 @@ TEST(CSV_IO_Test, WithoutHeader_Succeeds) {
 
   ttb::CSV_IO reader(path, /*has_header=*/false);
   auto res = reader.read();
-  ASSERT_TRUE(res.has_value()) << "Read failed with code";
-  EXPECT_EQ(res->n_rows(), 2);
-  EXPECT_EQ(res->n_cols(), 2);
+  EXPECT_EQ(res.n_rows(), 2);
+  EXPECT_EQ(res.n_cols(), 2);
 
   fs::remove(path);
 }
@@ -87,12 +85,7 @@ TEST(CSV_IO_Test, MissingFile_Fails) {
   // Do not create the file
 
   ttb::CSV_IO reader(path, true);
-  auto res = reader.read();
-  EXPECT_FALSE(res.has_value());
-  // Error code may vary by implementation; assert it's not Ok
-  if (!res.has_value()) {
-    EXPECT_NE(res.error(), utl::ReturnCode::Ok);
-  }
+  EXPECT_THROW(auto x = reader.read(), ttb::CSV_IOError);
 }
 
 TEST(CSV_IO_Test, WritesFileAndIsReadable) {
@@ -100,18 +93,16 @@ TEST(CSV_IO_Test, WritesFileAndIsReadable) {
 
   auto table = tcsv_io::make_simple_table();
   ttb::CSV_IO writer(path, /*has_header=*/true);
-  auto rc = writer.write(table, ',');
-  EXPECT_EQ(rc, utl::ReturnCode::Ok);
+  writer.write(table, ',');
   ASSERT_TRUE(fs::exists(path));
 
   // Optional round-trip check
   ttb::CSV_IO reader(path, /*has_header=*/true);
   auto res = reader.read();
-  ASSERT_TRUE(res.has_value());
-  EXPECT_EQ(res->n_rows(), 3);
-  EXPECT_EQ(res->n_cols(), 2);
+  EXPECT_EQ(res.n_rows(), 3);
+  EXPECT_EQ(res.n_cols(), 2);
 
-  auto names = res->col_names();
+  auto names = res.col_names();
   ASSERT_EQ(names.size(), 2u);
   EXPECT_EQ(names[0], "f32");
   EXPECT_EQ(names[1], "i64");

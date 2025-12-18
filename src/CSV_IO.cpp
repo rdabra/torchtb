@@ -17,11 +17,11 @@
 
 namespace rread {
 
-std::expected<utl::shp<arrow::Table>, utl::ReturnCode> read_file(const std::filesystem::path &path,
-                                                                 bool has_header, char separator) {
+utl::shp<arrow::Table> read_file(const std::filesystem::path &path, bool has_header,
+                                 char separator) {
   auto infile = arrow::io::ReadableFile::Open(path);
   if (!infile.ok())
-    return std::unexpected(utl::map_status(infile.status()));
+    throw ttb::CSV_IOError(infile.status().ToString());
 
   auto read_opts = arrow::csv::ReadOptions::Defaults();
   auto parse_opts = arrow::csv::ParseOptions::Defaults();
@@ -35,29 +35,27 @@ std::expected<utl::shp<arrow::Table>, utl::ReturnCode> read_file(const std::file
       arrow::csv::TableReader::Make(arrow::io::default_io_context(), infile.MoveValueUnsafe(),
                                     read_opts, parse_opts, convert_opts);
   if (!reader.ok())
-    return std::unexpected(utl::map_status(reader.status()));
+    throw ttb::CSV_IOError(reader.status().ToString());
 
   auto table = reader.MoveValueUnsafe()->Read();
   if (!table.ok())
-    return std::unexpected(utl::map_status(table.status()));
+    throw ttb::CSV_IOError(table.status().ToString());
 
   return table.ValueUnsafe();
 }
 
 } // namespace rread
 
-std::expected<ttb::AnalyticTable, utl::ReturnCode> ttb::CSV_IO::read(char separator) const {
+ttb::AnalyticTable ttb::CSV_IO::read(char separator) const {
   auto resp = rread::read_file(this->_path, _has_header, separator);
-  if (!resp)
-    return std::unexpected(resp.error());
 
-  return ttb::AnalyticTable{std::move(resp.value())};
+  return ttb::AnalyticTable{std::move(resp)};
 }
 
-utl::ReturnCode ttb::CSV_IO::write(const ttb::AnalyticTable &table, char separator) const {
+void ttb::CSV_IO::write(const ttb::AnalyticTable &table, char separator) const {
   auto r_outfile = arrow::io::FileOutputStream::Open(_path);
   if (!r_outfile.ok())
-    return utl::map_status(r_outfile.status());
+    throw CSV_IOError(r_outfile.status().ToString());
 
   auto opts = arrow::csv::WriteOptions::Defaults();
   opts.include_header = _has_header;
@@ -65,24 +63,21 @@ utl::ReturnCode ttb::CSV_IO::write(const ttb::AnalyticTable &table, char separat
   opts.delimiter = separator;
   auto outfile = r_outfile.MoveValueUnsafe();
 
-  auto resp = arrow::csv::WriteCSV(*table.arrow_table(), opts, outfile.get());
-  return utl::map_status(resp);
+  auto st = arrow::csv::WriteCSV(*table.arrow_table(), opts, outfile.get());
+  if (!st.ok())
+    throw CSV_IOError(st.ToString());
 }
 
 template <utl::NumericType T>
-std::expected<ttb::AnalyticTableNumeric<T>, utl::ReturnCode>
-ttb::CSV_IO::read_numeric(char separator) const {
+ttb::AnalyticTableNumeric<T> ttb::CSV_IO::read_numeric(char separator) const {
   auto r_table = this->read(separator);
-  if (!r_table)
-    return std::unexpected(r_table.error());
 
-  return ttb::AnalyticTableNumeric<T>{std::move(r_table.value())};
+  return ttb::AnalyticTableNumeric<T>{std::move(r_table)};
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INSTANTIATE_CSV_IO_TEMPLATES(T)                                                            \
-  template std::expected<ttb::AnalyticTableNumeric<T>, utl::ReturnCode>                            \
-  ttb::CSV_IO::read_numeric<T>(char) const;
+  template ttb::AnalyticTableNumeric<T> ttb::CSV_IO::read_numeric<T>(char) const;
 
 INSTANTIATE_CSV_IO_TEMPLATES(int);
 INSTANTIATE_CSV_IO_TEMPLATES(int64_t)
