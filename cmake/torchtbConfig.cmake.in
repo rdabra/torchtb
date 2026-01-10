@@ -7,6 +7,8 @@ include(CMakeFindDependencyMacro)
 find_dependency(Arrow  CONFIG)
 find_dependency(Parquet CONFIG)
 find_dependency(Torch  CONFIG)    # if you link to Torch PUBLIC
+find_dependency(ArrowCompute CONFIG)
+find_dependency(ArrowAcero CONFIG)
 
 # Optional: expose useful variables to consumers
 set(TORCHTB_VERSION        "@PROJECT_VERSION@")

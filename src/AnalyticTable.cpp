@@ -2,6 +2,8 @@
 #include "detail/utils.h"
 
 #include <algorithm>
+#include <arrow/acero/exec_plan.h>
+#include <arrow/acero/options.h>
 #include <arrow/api.h>
 #include <arrow/chunked_array.h>
 #include <arrow/compute/api.h>
@@ -99,6 +101,27 @@ void ttb::AnalyticTable::right_append(const AnalyticTable &table) {
   this->_arrow_tb = resp;
 }
 
+std::shared_ptr<arrow::Scalar>
+ttb::AnalyticTable::to_arrow_scalar(const std::shared_ptr<arrow::DataType> &field_type,
+                                    std::string value) {
+  if (field_type->id() == arrow::Type::DICTIONARY)
+    throw ttb::AnalyticTableError("Cannot convert Dictionary type");
+
+  if (field_type->id() == arrow::Type::STRING)
+    return utl::new_shp<arrow::StringScalar>(value);
+  if (field_type->id() == arrow::Type::LARGE_STRING)
+    return utl::new_shp<arrow::LargeStringScalar>(value);
+
+  auto value_as_scalar = utl::new_shp<arrow::StringScalar>(value);
+
+  auto r_resp = arrow::compute::Cast(arrow::Datum{value_as_scalar}, field_type);
+  if (!r_resp.ok())
+    throw ttb::AnalyticTableError(r_resp.status().ToString());
+
+  auto resp = r_resp.MoveValueUnsafe();
+  return resp.scalar();
+}
+
 void ttb::AnalyticTable::append(const AnalyticTable &table, const ttb::Axis &axis) {
   switch (axis) {
   case ttb::Axis::COLUMN:
@@ -191,6 +214,69 @@ void ttb::AnalyticTable::sort(int col_index, ttb::SortOrder mode) {
     throw AnalyticTableError(r_datum.status().ToString());
 
   _arrow_tb = r_datum.MoveValueUnsafe().table();
+}
+
+namespace filter_with_and {
+
+std::string to_acero_condition(ttb::Criterion::Condition condition) {
+  switch (condition) {
+  case ttb::Criterion::Condition::LESS_EQUAL:
+    return "less_equal";
+  case ttb::Criterion::Condition::LESS:
+    return "less";
+  case ttb::Criterion::Condition::GREATER_EQUAL:
+    return "greater_equal";
+  case ttb::Criterion::Condition::GREATER:
+    return "greater";
+  case ttb::Criterion::Condition::NOT_EQUAL:
+    return "not_equal";
+
+  default:
+    return "equal";
+  }
+}
+
+arrow::compute::Expression apply_and(const std::vector<arrow::compute::Expression> expressions) {
+  auto resp = std::move(expressions[0]);
+  for (size_t i{1}; i < expressions.size(); ++i)
+    resp = arrow::compute::call("and_kleene", {resp, std::move(expressions[i])});
+
+  return resp;
+}
+
+} // namespace filter_with_and
+
+void ttb::AnalyticTable::filter_with_and(std::vector<ttb::Criterion> criteria) {
+  if (criteria.empty())
+    throw ttb::AnalyticTableError("Criteria is empty");
+
+  utl::initialize_arrow_compute();
+
+  std::vector<arrow::compute::Expression> expressions;
+  for (auto &item : criteria) {
+    auto field_index = this->col_index(item.field_name);
+    if (!field_index.has_value())
+      throw ttb::AnalyticTableError("Invalid field name");
+
+    auto cond = filter_with_and::to_acero_condition(item.condition);
+    auto type = _arrow_tb->column(field_index.value())->type();
+    auto value = this->to_arrow_scalar(type, item.value);
+
+    auto expr = arrow::compute::call(
+        cond, {arrow::compute::field_ref(item.field_name), arrow::compute::literal(value)});
+    expressions.emplace_back(expr);
+  }
+
+  auto all = filter_with_and::apply_and(expressions);
+  auto plan = arrow::acero::Declaration::Sequence(
+      {arrow::acero::Declaration("table_source", arrow::acero::TableSourceNodeOptions{_arrow_tb}),
+       arrow::acero::Declaration("filter", arrow::acero::FilterNodeOptions{all})});
+
+  auto r_resp = arrow::acero::DeclarationToTable(std::move(plan));
+  if (!r_resp.ok())
+    throw ttb::AnalyticTableError(r_resp.status().ToString());
+
+  _arrow_tb = r_resp.MoveValueUnsafe();
 }
 
 namespace one_hot_expand {

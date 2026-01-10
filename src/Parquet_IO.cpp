@@ -6,7 +6,6 @@
 
 #include <arrow/io/api.h>
 #include <arrow/type_fwd.h>
-#include <expected>
 #include <memory>
 #include <parquet/arrow/reader.h>
 #include <parquet/arrow/writer.h>

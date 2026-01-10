@@ -14,6 +14,22 @@ namespace ttb {
 enum class Axis { ROW = 0, COLUMN = 1 };
 
 enum class SortOrder { ASC = 0, DESC = 1 };
+
+struct Criterion {
+    enum class Condition {
+      LESS_EQUAL = 0,
+      LESS = 1,
+      EQUAL = 2,
+      GREATER = 3,
+      GREATER_EQUAL = 4,
+      NOT_EQUAL = 5
+    };
+
+    std::string field_name{""};
+    Condition condition{Condition::EQUAL};
+    std::string value{""};
+};
+
 /**
  * @brief Analytics Base Table (ABT), in the sense defined by Kelleher et al. in
  * "Fundamentals of Machine Learning for Predictive Data Analytics".
@@ -43,6 +59,7 @@ class AnalyticTable {
     void reorder_cols(const std::vector<int> &indices);
     void move_column(int from_index, int to_index);
     void sort(int col_index, ttb::SortOrder mode = ttb::SortOrder::ASC);
+    void filter_with_and(std::vector<ttb::Criterion> criteria);
 
     /**
      * @brief Moves the specified column to the rightmost postion and one-hot encode it with
@@ -94,6 +111,8 @@ class AnalyticTable {
 
     void bottom_append(const AnalyticTable &table);
     void right_append(const AnalyticTable &table);
+    std::shared_ptr<arrow::Scalar>
+    to_arrow_scalar(const std::shared_ptr<arrow::DataType> &field_type, std::string value);
 };
 
 class AnalyticTableError : public std::runtime_error {

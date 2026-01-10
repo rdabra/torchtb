@@ -23,11 +23,9 @@
         "CMAKE_UNITY_BUILD": "ON",
         "CMAKE_UNITY_BUILD_BATCH_SIZE": "8",
         "CMAKE_CXX_SCAN_FOR_MODULES": false,
-        "CMAKE_PREFIX_PATH": "/opt/libtorch;/opt/arrow"
+        "CMAKE_PREFIX_PATH": "/opt/libtorch;/opt/re2;/opt/arrow"
       },
       "environment": {
-        "CC": "/opt/clang/bin/clang",
-        "CXX": "/opt/clang/bin/clang++",
         "CCACHE_BASEDIR": "${sourceDir}",
         "CCACHE_DIR": "/home/roberto/.cache/ccache",
         "CCACHE_COMPRESS": "1",
@@ -45,18 +43,14 @@
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/.out/install/${presetName}",
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++",
-        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_CXX_FLAGS": "-O0 -g3 -ggdb3 -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wconversion -Wunused -fno-optimize-sibling-calls -fsanitize=address,undefined,leak -fno-inline -fstack-protector-strong -fvisibility-inlines-hidden",
         "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=mold",
         "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=mold",
         "CMAKE_MODULE_LINKER_FLAGS": "-fuse-ld=mold",
         "BUILD_TESTING": true,
         "CMAKE_CXX_SCAN_FOR_MODULES": false,
-        "CMAKE_PREFIX_PATH": "/opt/libtorch;/opt/arrow"
-      },
-      "environment": {
-        "CC": "gcc",
-        "CXX": "g++"
+        "CMAKE_PREFIX_PATH": "/opt/libtorch;/opt/re2;/opt/arrow"
       }
     },
     {
@@ -70,17 +64,36 @@
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++",
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_FLAGS": "-O3 -march=native -finline-functions -fvisibility-inlines-hidden",
+        "CMAKE_CXX_FLAGS": "-O3 -DNDEBUG -march=native",
         "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=mold",
         "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=mold",
         "CMAKE_MODULE_LINKER_FLAGS": "-fuse-ld=mold",
         "BUILD_TESTING": false,
         "CMAKE_CXX_SCAN_FOR_MODULES": false,
-        "CMAKE_PREFIX_PATH": "/opt/libtorch;/opt/arrow"
-      },
-      "environment": {
-        "CC": "gcc",
-        "CXX": "g++"
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON",
+        "CMAKE_PREFIX_PATH": "/opt/libtorch;/opt/re2;/opt/arrow"
+      }
+    },
+    {
+      "name": "releaseIntel",
+      "displayName": "release-intel",
+      "description": "Intel C++ Compiler",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/.out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/.out/install/${presetName}",
+        "CMAKE_C_COMPILER": "icx",
+        "CMAKE_CXX_COMPILER": "icpx",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS": "-O3 -DNDEBUG -march=znver3 -mtune=znver3 -fomit-frame-pointer -fvisibility-inlines-hidden",
+        "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=mold",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=mold",
+        "CMAKE_MODULE_LINKER_FLAGS": "-fuse-ld=mold",
+        "BUILD_TESTING": false,
+        "CMAKE_CXX_SCAN_FOR_MODULES": false,
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON",
+        "CMAKE_PREFIX_PATH": "/opt/libtorch;/opt/re2;/opt/arrow",
+        "CMAKE_BUILD_WITH_INSTALL_RPATH": "ON"
       }
     }
   ],
@@ -89,7 +102,7 @@
       "name": "debugClang",
       "description": "",
       "displayName": "debugClang",
-      "jobs": 16,
+      "jobs": 32,
       "configurePreset": "debugClang",
       "targets": [
         "torchtb_static",
@@ -103,7 +116,7 @@
       "name": "debugGcc",
       "description": "",
       "displayName": "debugGcc",
-      "jobs": 16,
+      "jobs": 32,
       "configurePreset": "debugGcc",
       "targets": [
         "torchtb_static",
@@ -116,8 +129,21 @@
       "name": "releaseGcc",
       "description": "",
       "displayName": "releaseGcc",
-      "jobs": 16,
+      "jobs": 32,
       "configurePreset": "releaseGcc",
+      "targets": [
+        "torchtb_static",
+        "torchtb_shared",
+        "floatcsv2parquet",
+        "sandbox"
+      ]
+    },
+    {
+      "name": "releaseIntel",
+      "description": "",
+      "displayName": "releaseIntel",
+      "jobs": 32,
+      "configurePreset": "releaseIntel",
       "targets": [
         "torchtb_static",
         "torchtb_shared",

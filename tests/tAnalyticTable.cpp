@@ -593,3 +593,45 @@ TEST(AnalyticTable_Test, SortMaintainsRowIntegrity) {
   EXPECT_EQ(sorted_cat->Value(3), 3);
   EXPECT_EQ(sorted_val->Value(3), 30.0f);
 }
+
+TEST(AnalyticTable_Test, FilterRemovesRowsNotMatchingCriterion) {
+  arrow::Int64Builder id_builder;
+  ASSERT_TRUE(id_builder.AppendValues({1, 2, 3, 4, 5}).ok());
+  std::shared_ptr<arrow::Array> id_array;
+  ASSERT_TRUE(id_builder.Finish(&id_array).ok());
+
+  arrow::StringBuilder cat_builder;
+  ASSERT_TRUE(cat_builder.AppendValues({"a", "b", "b", "a", "c"}).ok());
+  std::shared_ptr<arrow::Array> cat_array;
+  ASSERT_TRUE(cat_builder.Finish(&cat_array).ok());
+
+  auto schema =
+      arrow::schema({arrow::field("id", arrow::int64()), arrow::field("cat", arrow::utf8())});
+  auto table = arrow::Table::Make(schema, {id_array, cat_array});
+
+  ttb::AnalyticTable analytic_table(utl::shp<arrow::Table>(std::move(table)));
+  ASSERT_EQ(analytic_table.n_rows(), 5);
+
+  // Filter with multiple criteria: id >= 2 AND cat == "b"
+  std::vector<ttb::Criterion> criteria{{"id", ttb::Criterion::Condition::GREATER_EQUAL, "2"},
+                                       {"cat", ttb::Criterion::Condition::EQUAL, "b"}};
+  analytic_table.filter_with_and(criteria);
+
+  // Should keep only rows where id >= 2 AND cat == "b" (rows with id=2 and id=3)
+  EXPECT_EQ(analytic_table.n_rows(), 2);
+
+  auto filtered = analytic_table.arrow_table();
+  auto id_chunked = filtered->GetColumnByName("id");
+  ASSERT_NE(id_chunked, nullptr);
+  auto id_array_filtered = std::static_pointer_cast<arrow::Int64Array>(id_chunked->chunk(0));
+  ASSERT_EQ(id_array_filtered->length(), 2);
+  EXPECT_EQ(id_array_filtered->Value(0), 2);
+  EXPECT_EQ(id_array_filtered->Value(1), 3);
+
+  auto cat_chunked = filtered->GetColumnByName("cat");
+  ASSERT_NE(cat_chunked, nullptr);
+  auto cat_array_filtered = std::static_pointer_cast<arrow::StringArray>(cat_chunked->chunk(0));
+  ASSERT_EQ(cat_array_filtered->length(), 2);
+  EXPECT_EQ(cat_array_filtered->GetString(0), "b");
+  EXPECT_EQ(cat_array_filtered->GetString(1), "b");
+}

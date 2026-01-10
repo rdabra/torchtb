@@ -49,7 +49,7 @@ auto new_unp(Args &&...args) -> unp<T> {
 }
 
 template <typename T, typename... Args>
-auto new_shp(Args &&...args) -> unp<T> {
+auto new_shp(Args &&...args) -> shp<T> {
   return std::make_shared<T>(std::forward<Args>(args)...);
 }
 
