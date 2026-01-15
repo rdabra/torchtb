@@ -609,15 +609,14 @@ TEST(AnalyticTable_Test, FilterRemovesRowsNotMatchingCriterion) {
       arrow::schema({arrow::field("id", arrow::int64()), arrow::field("cat", arrow::utf8())});
   auto table = arrow::Table::Make(schema, {id_array, cat_array});
 
-  ttb::AnalyticTable analytic_table(utl::shp<arrow::Table>(std::move(table)));
+  ttb::AnalyticTable analytic_table{utl::shp<arrow::Table>(table)};
+  auto or_table = analytic_table.clone();
   ASSERT_EQ(analytic_table.n_rows(), 5);
 
-  // Filter with multiple criteria: id >= 2 AND cat == "b"
   std::vector<ttb::Criterion> criteria{{"id", ttb::Criterion::Condition::GREATER_EQUAL, "2"},
                                        {"cat", ttb::Criterion::Condition::EQUAL, "b"}};
-  analytic_table.filter_with_and(criteria);
+  analytic_table.filter(criteria);
 
-  // Should keep only rows where id >= 2 AND cat == "b" (rows with id=2 and id=3)
   EXPECT_EQ(analytic_table.n_rows(), 2);
 
   auto filtered = analytic_table.arrow_table();
@@ -634,4 +633,175 @@ TEST(AnalyticTable_Test, FilterRemovesRowsNotMatchingCriterion) {
   ASSERT_EQ(cat_array_filtered->length(), 2);
   EXPECT_EQ(cat_array_filtered->GetString(0), "b");
   EXPECT_EQ(cat_array_filtered->GetString(1), "b");
+
+  or_table.filter(criteria, ttb::LogicOp::OR);
+
+  EXPECT_EQ(or_table.n_rows(), 4);
+
+  auto or_filtered = or_table.arrow_table();
+  auto or_id_chunked = or_filtered->GetColumnByName("id");
+  ASSERT_NE(or_id_chunked, nullptr);
+  auto or_id_array = std::static_pointer_cast<arrow::Int64Array>(or_id_chunked->chunk(0));
+  ASSERT_EQ(or_id_array->length(), 4);
+  EXPECT_EQ(or_id_array->Value(0), 2);
+  EXPECT_EQ(or_id_array->Value(1), 3);
+  EXPECT_EQ(or_id_array->Value(2), 4);
+  EXPECT_EQ(or_id_array->Value(3), 5);
+
+  auto or_cat_chunked = or_filtered->GetColumnByName("cat");
+  ASSERT_NE(or_cat_chunked, nullptr);
+  auto or_cat_array = std::static_pointer_cast<arrow::StringArray>(or_cat_chunked->chunk(0));
+  ASSERT_EQ(or_cat_array->length(), 4);
+  EXPECT_EQ(or_cat_array->GetString(0), "b");
+  EXPECT_EQ(or_cat_array->GetString(1), "b");
+  EXPECT_EQ(or_cat_array->GetString(2), "a");
+  EXPECT_EQ(or_cat_array->GetString(3), "c");
+}
+
+TEST(AnalyticTable_Test, DropNullsRemovesRowsWithNulls) {
+  arrow::Int64Builder id_builder;
+  arrow::StringBuilder note_builder;
+  arrow::FloatBuilder score_builder;
+
+  ASSERT_TRUE(id_builder.AppendValues({1, 2, 3, 4, 5}).ok());
+  ASSERT_TRUE(note_builder.Append("a").ok());
+  ASSERT_TRUE(note_builder.AppendNull().ok());
+  ASSERT_TRUE(note_builder.Append("c").ok());
+  ASSERT_TRUE(note_builder.Append("d").ok());
+  ASSERT_TRUE(note_builder.AppendNull().ok());
+
+  ASSERT_TRUE(score_builder.Append(10.0f).ok());
+  ASSERT_TRUE(score_builder.Append(11.0f).ok());
+  ASSERT_TRUE(score_builder.AppendNull().ok());
+  ASSERT_TRUE(score_builder.Append(13.0f).ok());
+  ASSERT_TRUE(score_builder.AppendNull().ok());
+
+  std::shared_ptr<arrow::Array> id_array, note_array, score_array;
+  ASSERT_TRUE(id_builder.Finish(&id_array).ok());
+  ASSERT_TRUE(note_builder.Finish(&note_array).ok());
+  ASSERT_TRUE(score_builder.Finish(&score_array).ok());
+
+  auto schema =
+      arrow::schema({arrow::field("id", arrow::int64()), arrow::field("note", arrow::utf8()),
+                     arrow::field("score", arrow::float32())});
+  auto table = arrow::Table::Make(schema, {id_array, note_array, score_array});
+  ttb::AnalyticTable analytic_table{utl::shp<arrow::Table>(table)};
+  auto or_table = analytic_table.clone();
+
+  analytic_table.drop_nulls({"note", "score"}, ttb::LogicOp::OR);
+
+  auto filtered = analytic_table.arrow_table();
+  ASSERT_EQ(filtered->num_rows(), 2);
+
+  auto id_chunked = filtered->GetColumnByName("id");
+  ASSERT_NE(id_chunked, nullptr);
+  auto id_filtered = std::static_pointer_cast<arrow::Int64Array>(id_chunked->chunk(0));
+  ASSERT_EQ(id_filtered->length(), 2);
+  EXPECT_EQ(id_filtered->Value(0), 1);
+  EXPECT_EQ(id_filtered->Value(1), 4);
+
+  auto note_chunked = filtered->GetColumnByName("note");
+  ASSERT_NE(note_chunked, nullptr);
+  auto note_filtered = std::static_pointer_cast<arrow::StringArray>(note_chunked->chunk(0));
+  ASSERT_EQ(note_filtered->length(), 2);
+  EXPECT_EQ(note_filtered->GetString(0), "a");
+  EXPECT_EQ(note_filtered->GetString(1), "d");
+
+  auto score_chunked = filtered->GetColumnByName("score");
+  ASSERT_NE(score_chunked, nullptr);
+  auto score_filtered = std::static_pointer_cast<arrow::FloatArray>(score_chunked->chunk(0));
+  ASSERT_EQ(score_filtered->length(), 2);
+  EXPECT_FLOAT_EQ(score_filtered->Value(0), 10.0f);
+  EXPECT_FLOAT_EQ(score_filtered->Value(1), 13.0f);
+
+  or_table.drop_nulls({"note", "score"}, ttb::LogicOp::AND);
+
+  auto or_filtered = or_table.arrow_table();
+  ASSERT_EQ(or_filtered->num_rows(), 4);
+
+  auto or_id_chunked = or_filtered->GetColumnByName("id");
+  ASSERT_NE(or_id_chunked, nullptr);
+  auto or_id_filtered = std::static_pointer_cast<arrow::Int64Array>(or_id_chunked->chunk(0));
+  ASSERT_EQ(or_id_filtered->length(), 4);
+  EXPECT_EQ(or_id_filtered->Value(0), 1);
+  EXPECT_EQ(or_id_filtered->Value(1), 2);
+  EXPECT_EQ(or_id_filtered->Value(2), 3);
+  EXPECT_EQ(or_id_filtered->Value(3), 4);
+
+  auto or_note_chunked = or_filtered->GetColumnByName("note");
+  ASSERT_NE(or_note_chunked, nullptr);
+  auto or_note_filtered = std::static_pointer_cast<arrow::StringArray>(or_note_chunked->chunk(0));
+  ASSERT_EQ(or_note_filtered->length(), 4);
+  EXPECT_TRUE(or_note_filtered->IsValid(0));
+  EXPECT_TRUE(or_note_filtered->IsNull(1));
+  EXPECT_TRUE(or_note_filtered->IsValid(2));
+  EXPECT_TRUE(or_note_filtered->IsValid(3));
+  EXPECT_EQ(or_note_filtered->GetString(0), "a");
+  EXPECT_EQ(or_note_filtered->GetString(2), "c");
+  EXPECT_EQ(or_note_filtered->GetString(3), "d");
+
+  auto or_score_chunked = or_filtered->GetColumnByName("score");
+  ASSERT_NE(or_score_chunked, nullptr);
+  auto or_score_filtered = std::static_pointer_cast<arrow::FloatArray>(or_score_chunked->chunk(0));
+  ASSERT_EQ(or_score_filtered->length(), 4);
+  EXPECT_TRUE(or_score_filtered->IsValid(0));
+  EXPECT_TRUE(or_score_filtered->IsValid(1));
+  EXPECT_TRUE(or_score_filtered->IsNull(2));
+  EXPECT_TRUE(or_score_filtered->IsValid(3));
+  EXPECT_FLOAT_EQ(or_score_filtered->Value(0), 10.0f);
+  EXPECT_FLOAT_EQ(or_score_filtered->Value(1), 11.0f);
+  EXPECT_FLOAT_EQ(or_score_filtered->Value(3), 13.0f);
+}
+
+TEST(AnalyticTable_Test, DropDuplicatesRemovesDuplicateRows) {
+  arrow::Int64Builder id_builder;
+  arrow::StringBuilder cat_builder;
+
+  ASSERT_TRUE(id_builder.AppendValues({1, 2, 2, 3, 1}).ok());
+  ASSERT_TRUE(cat_builder.AppendValues({"a", "b", "b", "c", "a"}).ok());
+
+  std::shared_ptr<arrow::Array> id_array, cat_array;
+  ASSERT_TRUE(id_builder.Finish(&id_array).ok());
+  ASSERT_TRUE(cat_builder.Finish(&cat_array).ok());
+
+  auto schema =
+      arrow::schema({arrow::field("id", arrow::int64()), arrow::field("cat", arrow::utf8())});
+  auto table = arrow::Table::Make(schema, {id_array, cat_array});
+  ttb::AnalyticTable analytic_table{utl::shp<arrow::Table>(table)};
+
+  analytic_table.drop_duplicates();
+
+  auto deduped = analytic_table.arrow_table();
+  ASSERT_EQ(deduped->num_rows(), 3);
+  ASSERT_EQ(deduped->num_columns(), 2);
+
+  auto id_chunked = deduped->GetColumnByName("id");
+  ASSERT_NE(id_chunked, nullptr);
+  auto id_filtered = std::static_pointer_cast<arrow::Int64Array>(id_chunked->chunk(0));
+  ASSERT_EQ(id_filtered->length(), 3);
+
+  auto cat_chunked = deduped->GetColumnByName("cat");
+  ASSERT_NE(cat_chunked, nullptr);
+  auto cat_filtered = std::static_pointer_cast<arrow::StringArray>(cat_chunked->chunk(0));
+  ASSERT_EQ(cat_filtered->length(), 3);
+
+  bool saw_a = false;
+  bool saw_b = false;
+  bool saw_c = false;
+  for (int64_t i = 0; i < id_filtered->length(); ++i) {
+    auto id = id_filtered->Value(i);
+    auto cat = cat_filtered->GetString(i);
+    if (id == 1 && cat == "a")
+      saw_a = true;
+    else if (id == 2 && cat == "b")
+      saw_b = true;
+    else if (id == 3 && cat == "c")
+      saw_c = true;
+    else
+      ADD_FAILURE() << "Unexpected row: id=" << id << ", cat=" << cat;
+  }
+
+  EXPECT_TRUE(saw_a);
+  EXPECT_TRUE(saw_b);
+  EXPECT_TRUE(saw_c);
 }

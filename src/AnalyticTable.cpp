@@ -122,6 +122,40 @@ ttb::AnalyticTable::to_arrow_scalar(const std::shared_ptr<arrow::DataType> &fiel
   return resp.scalar();
 }
 
+namespace submit_expressions {
+
+std::string to_acero_logic(ttb::LogicOp op) {
+  switch (op) {
+  case ttb::LogicOp::OR:
+    return "or_kleene";
+
+  default:
+    return "and_kleene";
+  }
+}
+
+} // namespace submit_expressions
+
+utl::shp<arrow::Table>
+ttb::AnalyticTable::submit_expressions(const std::vector<arrow::compute::Expression> expressions,
+                                       ttb::LogicOp op) {
+
+  auto acero_op = submit_expressions::to_acero_logic(op);
+  auto all = std::move(expressions[0]);
+  for (size_t i{1}; i < expressions.size(); ++i)
+    all = arrow::compute::call(acero_op, {all, std::move(expressions[i])});
+
+  auto plan = arrow::acero::Declaration::Sequence(
+      {arrow::acero::Declaration("table_source", arrow::acero::TableSourceNodeOptions{_arrow_tb}),
+       arrow::acero::Declaration("filter", arrow::acero::FilterNodeOptions{all})});
+
+  auto r_resp = arrow::acero::DeclarationToTable(std::move(plan));
+  if (!r_resp.ok())
+    throw ttb::AnalyticTableError(r_resp.status().ToString());
+
+  return r_resp.ValueUnsafe();
+}
+
 void ttb::AnalyticTable::append(const AnalyticTable &table, const ttb::Axis &axis) {
   switch (axis) {
   case ttb::Axis::COLUMN:
@@ -216,7 +250,7 @@ void ttb::AnalyticTable::sort(int col_index, ttb::SortOrder mode) {
   _arrow_tb = r_datum.MoveValueUnsafe().table();
 }
 
-namespace filter_with_and {
+namespace filter {
 
 std::string to_acero_condition(ttb::Criterion::Condition condition) {
   switch (condition) {
@@ -236,17 +270,10 @@ std::string to_acero_condition(ttb::Criterion::Condition condition) {
   }
 }
 
-arrow::compute::Expression apply_and(const std::vector<arrow::compute::Expression> expressions) {
-  auto resp = std::move(expressions[0]);
-  for (size_t i{1}; i < expressions.size(); ++i)
-    resp = arrow::compute::call("and_kleene", {resp, std::move(expressions[i])});
+} // namespace filter
 
-  return resp;
-}
-
-} // namespace filter_with_and
-
-void ttb::AnalyticTable::filter_with_and(std::vector<ttb::Criterion> criteria) {
+void ttb::AnalyticTable::filter(const std::vector<ttb::Criterion> &criteria,
+                                const ttb::LogicOp &op) {
   if (criteria.empty())
     throw ttb::AnalyticTableError("Criteria is empty");
 
@@ -258,7 +285,7 @@ void ttb::AnalyticTable::filter_with_and(std::vector<ttb::Criterion> criteria) {
     if (!field_index.has_value())
       throw ttb::AnalyticTableError("Invalid field name");
 
-    auto cond = filter_with_and::to_acero_condition(item.condition);
+    auto cond = filter::to_acero_condition(item.condition);
     auto type = _arrow_tb->column(field_index.value())->type();
     auto value = this->to_arrow_scalar(type, item.value);
 
@@ -267,16 +294,51 @@ void ttb::AnalyticTable::filter_with_and(std::vector<ttb::Criterion> criteria) {
     expressions.emplace_back(expr);
   }
 
-  auto all = filter_with_and::apply_and(expressions);
+  _arrow_tb = this->submit_expressions(expressions, op);
+}
+
+void ttb::AnalyticTable::drop_nulls(const std::vector<std::string> &field_names,
+                                    const ttb::LogicOp &op) {
+  if (field_names.empty())
+    throw ttb::AnalyticTableError("field_names is empty");
+
+  utl::initialize_arrow_compute();
+
+  std::vector<arrow::compute::Expression> expressions;
+  for (auto &item : field_names) {
+    auto field_index = this->col_index(item);
+    if (!field_index.has_value())
+      throw ttb::AnalyticTableError("Invalid field name");
+
+    auto expr = arrow::compute::call("is_valid", {arrow::compute::field_ref(item)});
+    expressions.emplace_back(expr);
+  }
+
+  // In Acero the logic for null is inverted
+  auto invert_op = op == ttb::LogicOp::AND ? ttb::LogicOp::OR : ttb::LogicOp::AND;
+  _arrow_tb = this->submit_expressions(expressions, invert_op);
+}
+
+void ttb::AnalyticTable::drop_nulls(const ttb::LogicOp &op) {
+  this->drop_nulls(this->col_names(), op);
+}
+
+void ttb::AnalyticTable::drop_duplicates() {
+  std::vector<arrow::FieldRef> group_fields;
+  group_fields.reserve(this->n_cols());
+  for (auto &item : this->col_names())
+    group_fields.emplace_back(item);
+
   auto plan = arrow::acero::Declaration::Sequence(
       {arrow::acero::Declaration("table_source", arrow::acero::TableSourceNodeOptions{_arrow_tb}),
-       arrow::acero::Declaration("filter", arrow::acero::FilterNodeOptions{all})});
+       arrow::acero::Declaration("aggregate",
+                                 arrow::acero::AggregateNodeOptions{{}, {group_fields}})});
 
-  auto r_resp = arrow::acero::DeclarationToTable(std::move(plan));
-  if (!r_resp.ok())
-    throw ttb::AnalyticTableError(r_resp.status().ToString());
+  auto r_table = arrow::acero::DeclarationToTable(std::move(plan));
+  if (!r_table.ok())
+    throw ttb::AnalyticTableError(r_table.status().ToString());
 
-  _arrow_tb = r_resp.MoveValueUnsafe();
+  _arrow_tb = r_table.MoveValueUnsafe();
 }
 
 namespace one_hot_expand {

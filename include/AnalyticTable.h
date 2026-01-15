@@ -15,6 +15,8 @@ enum class Axis { ROW = 0, COLUMN = 1 };
 
 enum class SortOrder { ASC = 0, DESC = 1 };
 
+enum class LogicOp { AND = 0, OR = 1 };
+
 struct Criterion {
     enum class Condition {
       LESS_EQUAL = 0,
@@ -59,7 +61,18 @@ class AnalyticTable {
     void reorder_cols(const std::vector<int> &indices);
     void move_column(int from_index, int to_index);
     void sort(int col_index, ttb::SortOrder mode = ttb::SortOrder::ASC);
-    void filter_with_and(std::vector<ttb::Criterion> criteria);
+
+    void filter(const std::vector<ttb::Criterion> &criteria,
+                const ttb::LogicOp &op = ttb::LogicOp::AND);
+    void drop_nulls(const std::vector<std::string> &field_names,
+                    const ttb::LogicOp &op = ttb::LogicOp::AND);
+    void drop_nulls(const ttb::LogicOp &op = ttb::LogicOp::AND);
+
+    /**
+     * @brief Removes duplicate rows from the table. Order is not preserved.
+     *
+     */
+    void drop_duplicates();
 
     /**
      * @brief Moves the specified column to the rightmost postion and one-hot encode it with
@@ -113,6 +126,10 @@ class AnalyticTable {
     void right_append(const AnalyticTable &table);
     std::shared_ptr<arrow::Scalar>
     to_arrow_scalar(const std::shared_ptr<arrow::DataType> &field_type, std::string value);
+    arrow::compute::Expression
+    apply_filter_xx(const std::vector<arrow::compute::Expression> expressions);
+    utl::shp<arrow::Table>
+    submit_expressions(const std::vector<arrow::compute::Expression> expressions, ttb::LogicOp op);
 };
 
 class AnalyticTableError : public std::runtime_error {
