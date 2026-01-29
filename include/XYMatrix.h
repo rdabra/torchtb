@@ -18,10 +18,10 @@ class XYMatrix {
     XYMatrix &operator=(XYMatrix &&) = default;
     ~XYMatrix() = default;
 
-    template <utl::NumericType T>
+    template <ttb::utl::NumericType T>
     XYMatrix(ttb::TbNumeric<T> &&data, int last_X_col);
 
-    template <utl::NumericType T>
+    template <ttb::utl::NumericType T>
     XYMatrix(ttb::TbNumeric<T> &&X, ttb::TbNumeric<T> &&Y);
 
     XYMatrix(torch::Tensor &&data, int last_col_X);

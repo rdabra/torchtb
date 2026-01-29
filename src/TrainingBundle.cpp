@@ -28,7 +28,7 @@ std::pair<double, double> ttb::TrainingBundle::min_max_normz(int X_col) {
     auto a_X_eval = X_eval.accessor<cpp_type, 2>();
 
     auto n_rows_eval = X_eval.size(0);
-    if (utl::is_zero(min_val - max_val)) {
+    if (ttb::utl::is_zero(min_val - max_val)) {
       for (int64_t i{0}; i < n_rows_train; ++i)
         a_X_train[i][X_col] = 0.0;
       for (int64_t i{0}; i < n_rows_eval; ++i)
@@ -75,7 +75,7 @@ std::pair<double, double> ttb::TrainingBundle::z_score_normz(int X_col) {
     auto a_X_eval = X_eval.accessor<cpp_type, 2>();
 
     auto n_rows_eval = X_eval.size(0);
-    if (utl::is_zero(sigma)) {
+    if (ttb::utl::is_zero(sigma)) {
       for (int64_t i{0}; i < n_rows_train; ++i)
         a_X_train[i][X_col] = 0.0;
       for (int64_t i{0}; i < n_rows_eval; ++i)

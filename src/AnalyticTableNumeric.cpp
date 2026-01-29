@@ -4,9 +4,9 @@
 
 namespace to_dtype {
 
-void cast_table(utl::shp<arrow::Table> &arrow_tb, utl::shp<arrow::DataType> type) {
-  std::vector<utl::shp<arrow::ChunkedArray>> casted_columns;
-  std::vector<utl::shp<arrow::Field>> casted_fields;
+void cast_table(ttb::utl::shp<arrow::Table> &arrow_tb, ttb::utl::shp<arrow::DataType> type) {
+  std::vector<ttb::utl::shp<arrow::ChunkedArray>> casted_columns;
+  std::vector<ttb::utl::shp<arrow::Field>> casted_fields;
   for (int i{0}; i < arrow_tb->num_columns(); ++i) {
     auto column = arrow_tb->column(i);
 
@@ -30,38 +30,38 @@ void cast_table(utl::shp<arrow::Table> &arrow_tb, utl::shp<arrow::DataType> type
 
 } // namespace to_dtype
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 void ttb::AnalyticTableNumeric<T>::to_dtype() {
-  to_dtype::cast_table(_arrow_tb, utl::arrow_dtype<T>());
+  to_dtype::cast_table(_arrow_tb, ttb::utl::arrow_dtype<T>());
 }
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 ttb::AnalyticTableNumeric<T>::AnalyticTableNumeric(
     std::unordered_map<std::string, std::vector<T>> &&field_and_data)
-    : _arrow_dtype(utl::arrow_dtype<T>()) {
+    : _arrow_dtype(ttb::utl::arrow_dtype<T>()) {
   // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
   _arrow_tb = make_numeric_table(std::move(field_and_data));
 }
 
 namespace make_numeric_table {
 
-template <utl::NumericType T>
-std::pair<std::vector<utl::shp<arrow::Field>>, std::vector<utl::shp<arrow::Array>>>
+template <ttb::utl::NumericType T>
+std::pair<std::vector<ttb::utl::shp<arrow::Field>>, std::vector<ttb::utl::shp<arrow::Array>>>
 make_fields_columns(const std::unordered_map<std::string, std::vector<T>> &field_col_data) {
   auto first_item = std::begin(field_col_data);
   auto n_rows{first_item->second.size()};
 
   auto n_fields = field_col_data.size();
-  std::vector<utl::shp<arrow::Field>> fields;
-  std::vector<utl::shp<arrow::Array>> columns;
+  std::vector<ttb::utl::shp<arrow::Field>> fields;
+  std::vector<ttb::utl::shp<arrow::Array>> columns;
   fields.reserve(n_fields);
   columns.reserve(n_fields);
 
-  auto dtype = utl::arrow_dtype<T>();
+  auto dtype = ttb::utl::arrow_dtype<T>();
   for (auto &[field, col_data] : field_col_data) {
     fields.emplace_back(arrow::field(field, dtype));
 
-    auto builder = utl::new_unp<utl::ArrowBuilderType<T>>(arrow::default_memory_pool());
+    auto builder = ttb::utl::new_unp<ttb::utl::ArrowBuilderType<T>>(arrow::default_memory_pool());
     auto status = builder->Resize(n_rows);
     if (!status.ok())
       throw ttb::AnalyticTableError("Could not mount arrow column!");
@@ -81,8 +81,8 @@ make_fields_columns(const std::unordered_map<std::string, std::vector<T>> &field
 
 } // namespace make_numeric_table
 
-template <utl::NumericType T>
-utl::shp<arrow::Table> ttb::AnalyticTableNumeric<T>::make_numeric_table(
+template <ttb::utl::NumericType T>
+ttb::utl::shp<arrow::Table> ttb::AnalyticTableNumeric<T>::make_numeric_table(
     std::unordered_map<std::string, std::vector<T>> &&field_and_data) {
   auto my_field_and_data = std::move(field_and_data);
 
@@ -101,8 +101,8 @@ utl::shp<arrow::Table> ttb::AnalyticTableNumeric<T>::make_numeric_table(
 
 namespace argmax {
 
-template <utl::NumericType T>
-std::vector<int64_t> argmax_row(const utl::shp<arrow::Table> &arrow_tb) {
+template <ttb::utl::NumericType T>
+std::vector<int64_t> argmax_row(const ttb::utl::shp<arrow::Table> &arrow_tb) {
   auto n_cols = arrow_tb->num_columns();
 
   std::vector<int64_t> resp;
@@ -114,7 +114,7 @@ std::vector<int64_t> argmax_row(const utl::shp<arrow::Table> &arrow_tb) {
     auto max_val = std::numeric_limits<T>::lowest();
     auto chunks = arrow_tb->column(j)->chunks();
     for (auto chunked_col : chunks) {
-      auto array = std::static_pointer_cast<utl::ArrowArrayType<T>>(chunked_col);
+      auto array = std::static_pointer_cast<ttb::utl::ArrowArrayType<T>>(chunked_col);
       for (int64_t i{0}; i < array->length(); ++i, ++global_idx) {
         auto val = array->Value(i);
         if (val > max_val) {
@@ -129,10 +129,10 @@ std::vector<int64_t> argmax_row(const utl::shp<arrow::Table> &arrow_tb) {
   return resp;
 }
 
-template <utl::NumericType T>
-std::vector<utl::shp<utl::ArrowArrayType<T>>>
-fragment_columns(const utl::shp<arrow::Table> &arrow_tb) {
-  std::vector<utl::shp<utl::ArrowArrayType<T>>> resp;
+template <ttb::utl::NumericType T>
+std::vector<ttb::utl::shp<ttb::utl::ArrowArrayType<T>>>
+fragment_columns(const ttb::utl::shp<arrow::Table> &arrow_tb) {
+  std::vector<ttb::utl::shp<ttb::utl::ArrowArrayType<T>>> resp;
   auto n_cols = arrow_tb->num_columns();
 
   for (int64_t j{0}; j < n_cols; ++j) {
@@ -140,14 +140,14 @@ fragment_columns(const utl::shp<arrow::Table> &arrow_tb) {
     auto maybe_arr = arrow::Concatenate(chunks, arrow::default_memory_pool());
     if (!maybe_arr.ok())
       throw ttb::AnalyticTableNumericError(maybe_arr.status().ToString());
-    auto arr = std::static_pointer_cast<utl::ArrowArrayType<T>>(*maybe_arr);
+    auto arr = std::static_pointer_cast<ttb::utl::ArrowArrayType<T>>(*maybe_arr);
     resp.emplace_back(std::move(arr));
   }
   return resp;
 }
 
-template <utl::NumericType T>
-std::vector<int64_t> argmax_col(const utl::shp<arrow::Table> &arrow_tb) {
+template <ttb::utl::NumericType T>
+std::vector<int64_t> argmax_col(const ttb::utl::shp<arrow::Table> &arrow_tb) {
   auto n_rows = arrow_tb->num_rows();
   auto n_cols = arrow_tb->num_columns();
 
@@ -174,7 +174,7 @@ std::vector<int64_t> argmax_col(const utl::shp<arrow::Table> &arrow_tb) {
 
 } // namespace argmax
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 std::vector<int64_t> ttb::AnalyticTableNumeric<T>::argmax(Axis axis) const {
   if (this->n_rows() == 0 || this->n_cols() == 0)
     return {};
@@ -189,7 +189,7 @@ std::vector<int64_t> ttb::AnalyticTableNumeric<T>::argmax(Axis axis) const {
   }
 }
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 void ttb::AnalyticTableNumeric<T>::one_hot_expand(int col_index) {
   ttb::AnalyticTable::one_hot_expand(col_index);
   this->to_dtype();

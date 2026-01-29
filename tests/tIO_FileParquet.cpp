@@ -30,8 +30,8 @@ static ttb::AnalyticTable make_table() {
   EXPECT_TRUE(fb.AppendValues({1.0f, 2.0f, 3.0f}).ok());
   EXPECT_TRUE(ib.AppendValues({10, 20, 30}).ok());
 
-  utl::shp<arrow::Array> fcol;
-  utl::shp<arrow::Array> icol;
+  ttb::utl::shp<arrow::Array> fcol;
+  ttb::utl::shp<arrow::Array> icol;
   EXPECT_TRUE(fb.Finish(&fcol).ok());
   EXPECT_TRUE(ib.Finish(&icol).ok());
 
@@ -118,7 +118,7 @@ TEST(IO_FileParquet_Test, FallbackToGenericIfNotPureNumeric) {
   // Build a pure int64 table
   arrow::Int64Builder ib;
   EXPECT_TRUE(ib.AppendValues({11, 22, 33}).ok());
-  utl::shp<arrow::Array> icol;
+  ttb::utl::shp<arrow::Array> icol;
   EXPECT_TRUE(ib.Finish(&icol).ok());
   auto schema = arrow::schema({arrow::field("x", arrow::int64())});
   auto tbl = arrow::Table::Make(schema, {icol});

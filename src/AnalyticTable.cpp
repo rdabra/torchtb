@@ -84,7 +84,7 @@ void ttb::AnalyticTable::right_append(const AnalyticTable &table) {
   if (this->n_rows() != table.n_rows())
     throw AnalyticTableError("Number of rows do not match");
 
-  utl::shp<arrow::Table> resp = this->_arrow_tb;
+  ttb::utl::shp<arrow::Table> resp = this->_arrow_tb;
 
   for (int i{0}; i < table.n_cols(); ++i) {
     auto field = table._arrow_tb->schema()->field(i);
@@ -108,11 +108,11 @@ ttb::AnalyticTable::to_arrow_scalar(const std::shared_ptr<arrow::DataType> &fiel
     throw ttb::AnalyticTableError("Cannot convert Dictionary type");
 
   if (field_type->id() == arrow::Type::STRING)
-    return utl::new_shp<arrow::StringScalar>(value);
+    return ttb::utl::new_shp<arrow::StringScalar>(value);
   if (field_type->id() == arrow::Type::LARGE_STRING)
-    return utl::new_shp<arrow::LargeStringScalar>(value);
+    return ttb::utl::new_shp<arrow::LargeStringScalar>(value);
 
-  auto value_as_scalar = utl::new_shp<arrow::StringScalar>(value);
+  auto value_as_scalar = ttb::utl::new_shp<arrow::StringScalar>(value);
 
   auto r_resp = arrow::compute::Cast(arrow::Datum{value_as_scalar}, field_type);
   if (!r_resp.ok())
@@ -136,7 +136,7 @@ std::string to_acero_logic(ttb::LogicOp op) {
 
 } // namespace submit_expressions
 
-utl::shp<arrow::Table>
+ttb::utl::shp<arrow::Table>
 ttb::AnalyticTable::submit_expressions(const std::vector<arrow::compute::Expression> expressions,
                                        ttb::LogicOp op) {
 
@@ -230,7 +230,7 @@ void ttb::AnalyticTable::sort(int col_index, ttb::SortOrder mode) {
     throw AnalyticTableError("Index out of bounds");
 
   /// Required by arrow for some compute functions
-  utl::initialize_arrow_compute();
+  ttb::utl::initialize_arrow_compute();
 
   auto col_name = this->col_names()[col_index];
   auto order = mode == ttb::SortOrder::ASC ? arrow::compute::SortOrder::Ascending
@@ -277,7 +277,7 @@ void ttb::AnalyticTable::filter(const std::vector<ttb::Criterion> &criteria,
   if (criteria.empty())
     throw ttb::AnalyticTableError("Criteria is empty");
 
-  utl::initialize_arrow_compute();
+  ttb::utl::initialize_arrow_compute();
 
   std::vector<arrow::compute::Expression> expressions;
   for (auto &item : criteria) {
@@ -302,7 +302,7 @@ void ttb::AnalyticTable::drop_nulls(const std::vector<std::string> &field_names,
   if (field_names.empty())
     throw ttb::AnalyticTableError("field_names is empty");
 
-  utl::initialize_arrow_compute();
+  ttb::utl::initialize_arrow_compute();
 
   std::vector<arrow::compute::Expression> expressions;
   for (auto &item : field_names) {
@@ -343,7 +343,7 @@ void ttb::AnalyticTable::drop_duplicates() {
 
 namespace one_hot_expand {
 
-utl::shp<arrow::Array> to_array(const ttb::AnalyticTable &col_clone) {
+ttb::utl::shp<arrow::Array> to_array(const ttb::AnalyticTable &col_clone) {
   auto chunks = col_clone.arrow_table()->column(0)->chunks();
 
   auto r_col_as_array = arrow::Concatenate(chunks, arrow::default_memory_pool());
@@ -355,8 +355,8 @@ utl::shp<arrow::Array> to_array(const ttb::AnalyticTable &col_clone) {
   return column;
 }
 
-utl::shp<arrow::Array> build_one_hot_col(const utl::shp<arrow::Array> &col_as_array,
-                                         const utl::shp<arrow::Scalar> &distinct_value) {
+ttb::utl::shp<arrow::Array> build_one_hot_col(const ttb::utl::shp<arrow::Array> &col_as_array,
+                                         const ttb::utl::shp<arrow::Scalar> &distinct_value) {
   arrow::Int32Builder builder(arrow::default_memory_pool());
   auto n_rows = col_as_array->length();
   auto status = builder.Resize(n_rows);
@@ -392,8 +392,8 @@ void ttb::AnalyticTable::one_hot_expand(int col_index) {
 
   auto n_fields = field_names->length();
   auto prefix = this->col_names()[col_index] + "_";
-  std::vector<utl::shp<arrow::Field>> fields;
-  std::vector<utl::shp<arrow::Array>> one_hot_cols;
+  std::vector<ttb::utl::shp<arrow::Field>> fields;
+  std::vector<ttb::utl::shp<arrow::Array>> one_hot_cols;
   fields.reserve(n_fields);
   one_hot_cols.reserve(n_fields);
 

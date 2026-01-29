@@ -22,7 +22,7 @@ static ttb::AnalyticTable make_simple_table(int64_t nrows = 3) {
   EXPECT_TRUE(ib.AppendValues(ivals).ok());
   EXPECT_TRUE(fb.AppendValues(fvals).ok());
 
-  utl::shp<arrow::Array> icol, fcol;
+  ttb::utl::shp<arrow::Array> icol, fcol;
   EXPECT_TRUE(ib.Finish(&icol).ok());
   EXPECT_TRUE(fb.Finish(&fcol).ok());
 
@@ -609,7 +609,7 @@ TEST(AnalyticTable_Test, FilterRemovesRowsNotMatchingCriterion) {
       arrow::schema({arrow::field("id", arrow::int64()), arrow::field("cat", arrow::utf8())});
   auto table = arrow::Table::Make(schema, {id_array, cat_array});
 
-  ttb::AnalyticTable analytic_table{utl::shp<arrow::Table>(table)};
+  ttb::AnalyticTable analytic_table{ttb::utl::shp<arrow::Table>(table)};
   auto or_table = analytic_table.clone();
   ASSERT_EQ(analytic_table.n_rows(), 5);
 
@@ -685,7 +685,7 @@ TEST(AnalyticTable_Test, DropNullsRemovesRowsWithNulls) {
       arrow::schema({arrow::field("id", arrow::int64()), arrow::field("note", arrow::utf8()),
                      arrow::field("score", arrow::float32())});
   auto table = arrow::Table::Make(schema, {id_array, note_array, score_array});
-  ttb::AnalyticTable analytic_table{utl::shp<arrow::Table>(table)};
+  ttb::AnalyticTable analytic_table{ttb::utl::shp<arrow::Table>(table)};
   auto or_table = analytic_table.clone();
 
   analytic_table.drop_nulls({"note", "score"}, ttb::LogicOp::OR);
@@ -767,7 +767,7 @@ TEST(AnalyticTable_Test, DropDuplicatesRemovesDuplicateRows) {
   auto schema =
       arrow::schema({arrow::field("id", arrow::int64()), arrow::field("cat", arrow::utf8())});
   auto table = arrow::Table::Make(schema, {id_array, cat_array});
-  ttb::AnalyticTable analytic_table{utl::shp<arrow::Table>(table)};
+  ttb::AnalyticTable analytic_table{ttb::utl::shp<arrow::Table>(table)};
 
   analytic_table.drop_duplicates();
 

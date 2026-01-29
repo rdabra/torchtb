@@ -22,13 +22,13 @@ class IO_File {
 
     virtual void write(const ttb::AnalyticTable &table) const = 0;
 
-    template <utl::NumericType T>
+    template <ttb::utl::NumericType T>
     [[nodiscard]] ttb::AnalyticTableNumeric<T> read_numeric() const;
 
-    template <utl::NumericType T>
+    template <ttb::utl::NumericType T>
     void write_tensor(torch::Tensor &&tensor) const;
 
-    template <utl::NumericType T>
+    template <ttb::utl::NumericType T>
     void write_matrix(ttb::XYMatrix &&xy_matrix) const;
 
   protected:

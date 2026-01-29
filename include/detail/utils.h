@@ -4,7 +4,7 @@
 
 #include <arrow/status.h>
 
-namespace utl {
+namespace ttb::utl {
 
 static const std::string LIBRARY_NAME{"torchtb"};
 
@@ -12,10 +12,10 @@ template <typename T>
 concept NumericType = std::same_as<T, int> || std::same_as<T, int64_t> || std::same_as<T, float> ||
                       std::same_as<T, double>;
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 using ArrowType = typename arrow::CTypeTraits<T>::ArrowType;
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 constexpr std::shared_ptr<arrow::DataType> arrow_dtype() {
   return arrow::CTypeTraits<T>::type_singleton();
 }
@@ -25,10 +25,10 @@ constexpr torch::ScalarType torch_type() {
   return c10::CppTypeToScalarType<T>::value;
 }
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 using ArrowArrayType = typename arrow::TypeTraits<ArrowType<T>>::ArrayType;
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 using ArrowBuilderType = typename arrow::TypeTraits<ArrowType<T>>::BuilderType;
 
 std::string to_lower(std::string word);
@@ -63,5 +63,5 @@ bool is_zero(T value) {
 
 void initialize_arrow_compute();
 
-} // namespace utl
+} // namespace ttb::utl
 #endif

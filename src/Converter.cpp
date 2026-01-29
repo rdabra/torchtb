@@ -23,13 +23,13 @@
 
 namespace torch_tensor {
 
-template <utl::NumericType T>
-torch::Tensor to_tensor(const utl::shp<arrow::Array> &arr) {
+template <ttb::utl::NumericType T>
+torch::Tensor to_tensor(const ttb::utl::shp<arrow::Array> &arr) {
   if (arr->null_count() != 0)
     throw std::runtime_error("Column has nulls");
 
-  auto casted_col = std::static_pointer_cast<utl::ArrowArrayType<T>>(arr);
-  auto torch_type = utl::torch_type<T>();
+  auto casted_col = std::static_pointer_cast<ttb::utl::ArrowArrayType<T>>(arr);
+  auto torch_type = ttb::utl::torch_type<T>();
   auto opt = torch::TensorOptions().dtype(torch_type);
   auto tensor = torch::empty({casted_col->length(), 1}, opt);
   std::memcpy(tensor.template data_ptr<T>(), casted_col->raw_values(),
@@ -39,7 +39,7 @@ torch::Tensor to_tensor(const utl::shp<arrow::Array> &arr) {
 
 } // namespace torch_tensor
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 torch::Tensor ttb::Converter::torch_tensor(ttb::AnalyticTableNumeric<T> &&data) {
   auto my_data = std::move(data);
   std::vector<torch::Tensor> tensors;
@@ -54,7 +54,7 @@ torch::Tensor ttb::Converter::torch_tensor(ttb::AnalyticTableNumeric<T> &&data) 
   return torch::cat(tensors, 1);
 }
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 ttb::AnalyticTableNumeric<T> ttb::Converter::analytic_table(torch::Tensor &&tensor) {
   if (tensor.sizes().size() != 2)
     throw ttb::ConverterError("Tensor is not of second order");
@@ -62,7 +62,7 @@ ttb::AnalyticTableNumeric<T> ttb::Converter::analytic_table(torch::Tensor &&tens
     throw ttb::ConverterError("Tensor is not stored in CPU");
 
   auto my_tensor = std::move(tensor);
-  my_tensor = my_tensor.to(utl::torch_type<T>());
+  my_tensor = my_tensor.to(ttb::utl::torch_type<T>());
 
   auto n_rows = my_tensor.size(0);
   auto n_cols = my_tensor.size(1);
@@ -70,8 +70,8 @@ ttb::AnalyticTableNumeric<T> ttb::Converter::analytic_table(torch::Tensor &&tens
   /// Letting arrow manage memory
   auto pool = arrow::default_memory_pool();
 
-  std::vector<utl::shp<arrow::Field>> fields;
-  std::vector<utl::shp<arrow::ChunkedArray>> cols;
+  std::vector<ttb::utl::shp<arrow::Field>> fields;
+  std::vector<ttb::utl::shp<arrow::ChunkedArray>> cols;
 
   for (int64_t j{0}; j < n_cols; ++j) {
     auto column = my_tensor.index({torch::indexing::Slice(), j}).contiguous();
@@ -80,13 +80,13 @@ ttb::AnalyticTableNumeric<T> ttb::Converter::analytic_table(torch::Tensor &&tens
     if (!r_buf.ok())
       throw ttb::ConverterError(r_buf.status().ToString());
 
-    utl::shp<arrow::Buffer> buf = r_buf.MoveValueUnsafe();
+    ttb::utl::shp<arrow::Buffer> buf = r_buf.MoveValueUnsafe();
     std::memcpy(buf->mutable_data(), column.data_ptr<T>(), n_rows * sizeof(T));
 
-    auto array = std::make_shared<utl::ArrowArrayType<T>>(n_rows, buf, nullptr, 0);
+    auto array = std::make_shared<ttb::utl::ArrowArrayType<T>>(n_rows, buf, nullptr, 0);
 
     std::string name = "col_" + std::to_string(j + 1);
-    fields.emplace_back(arrow::field(name, utl::arrow_dtype<T>()));
+    fields.emplace_back(arrow::field(name, ttb::utl::arrow_dtype<T>()));
     cols.emplace_back(std::make_shared<arrow::ChunkedArray>(array));
   }
 
@@ -95,7 +95,7 @@ ttb::AnalyticTableNumeric<T> ttb::Converter::analytic_table(torch::Tensor &&tens
   return ttb::AnalyticTableNumeric<T>{arrow::Table::Make(schema, cols, n_rows)};
 };
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 torch::Tensor ttb::Converter::torch_tensor(ttb::IO_FileCSV &&reader) {
   auto my_reader = std::move(reader);
 
@@ -104,7 +104,7 @@ torch::Tensor ttb::Converter::torch_tensor(ttb::IO_FileCSV &&reader) {
   return ttb::Converter::torch_tensor<T>(std::move(read));
 }
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 torch::Tensor ttb::Converter::torch_tensor(ttb::IO_FileParquet &&reader) {
   auto my_reader = std::move(reader);
   auto r_data = my_reader.read_numeric<T>();

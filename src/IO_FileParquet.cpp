@@ -26,7 +26,7 @@ ttb::AnalyticTable ttb::IO_FileParquet::read() const {
   auto reader = r_reader.MoveValueUnsafe();
   reader->set_use_threads(true);
 
-  utl::shp<arrow::Table> table;
+  ttb::utl::shp<arrow::Table> table;
   auto status = reader->ReadTable(&table);
   if (!status.ok())
     throw ttb::IO_FileParquetError(status.ToString());
@@ -41,7 +41,7 @@ void ttb::IO_FileParquet::write(const ttb::AnalyticTable &table) const {
 
   auto parquet_props = parquet::WriterProperties::Builder()
                            .compression(parquet::Compression::ZSTD)
-                           ->created_by(utl::LIBRARY_NAME)
+                           ->created_by(ttb::utl::LIBRARY_NAME)
                            ->build();
 
   auto arrow_props = parquet::ArrowWriterProperties::Builder().store_schema()->build();

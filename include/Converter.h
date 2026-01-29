@@ -23,16 +23,16 @@ class Converter {
     Converter &operator=(Converter &&) = delete;
     ~Converter() = default;
 
-    template <utl::NumericType T>
+    template <ttb::utl::NumericType T>
     static torch::Tensor torch_tensor(ttb::AnalyticTableNumeric<T> &&data);
 
-    template <utl::NumericType T>
+    template <ttb::utl::NumericType T>
     static torch::Tensor torch_tensor(ttb::IO_FileCSV &&reader);
 
-    template <utl::NumericType T>
+    template <ttb::utl::NumericType T>
     static torch::Tensor torch_tensor(ttb::IO_FileParquet &&reader);
 
-    template <utl::NumericType T>
+    template <ttb::utl::NumericType T>
     static ttb::AnalyticTableNumeric<T> analytic_table(torch::Tensor &&tensor);
 };
 

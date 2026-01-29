@@ -2,21 +2,21 @@
 
 #include "Converter.h"
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 inline ttb::AnalyticTableNumeric<T> ttb::IO_File::read_numeric() const {
   auto table = this->read();
 
   return ttb::AnalyticTableNumeric<T>{std::move(table)};
 }
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 void ttb::IO_File::write_tensor(torch::Tensor &&tensor) const {
   auto table = ttb::Converter::analytic_table<T>(std::move(tensor));
 
   this->write(table);
 };
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 void ttb::IO_File::write_matrix(ttb::XYMatrix &&xy_matrix) const {
   auto my_xy_matrix = std::move(xy_matrix);
 

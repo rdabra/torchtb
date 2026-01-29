@@ -15,7 +15,7 @@
 
 namespace rread {
 
-utl::shp<arrow::Table> read_file(const std::filesystem::path &path, bool has_header,
+ttb::utl::shp<arrow::Table> read_file(const std::filesystem::path &path, bool has_header,
                                  char separator) {
   auto infile = arrow::io::ReadableFile::Open(path);
   if (!infile.ok())

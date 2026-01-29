@@ -41,8 +41,8 @@ ttb::AnalyticTable make_simple_table() {
   EXPECT_TRUE(fb.AppendValues({1.5f, 2.5f, 3.5f}).ok());
   EXPECT_TRUE(ib.AppendValues({10, 20, 30}).ok());
 
-  utl::shp<arrow::Array> fcol;
-  utl::shp<arrow::Array> icol;
+  ttb::utl::shp<arrow::Array> fcol;
+  ttb::utl::shp<arrow::Array> icol;
   EXPECT_TRUE(fb.Finish(&fcol).ok());
   EXPECT_TRUE(ib.Finish(&icol).ok());
 

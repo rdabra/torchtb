@@ -45,7 +45,7 @@ class AnalyticTable {
     AnalyticTable &operator=(AnalyticTable &&) = default;
     virtual ~AnalyticTable() = default;
 
-    AnalyticTable(utl::shp<arrow::Table> &&arrow_table) : _arrow_tb{std::move(arrow_table)} {};
+    AnalyticTable(ttb::utl::shp<arrow::Table> &&arrow_table) : _arrow_tb{std::move(arrow_table)} {};
 
     [[nodiscard]] int64_t n_rows() const;
     [[nodiscard]] int n_cols() const;
@@ -79,7 +79,7 @@ class AnalyticTable {
      * int values
      *
      * @param col_index Column to be one-hot encoded
-     * @return utl::ReturnCode
+     * @return ttb::utl::ReturnCode
      */
     virtual void one_hot_expand(int col_index);
 
@@ -87,7 +87,7 @@ class AnalyticTable {
      * @brief Extracts the specified column from this table
      *
      * @param col_index Index of the column to be removed
-     * @return std::expected<ttb::DataTable, utl::ReturnCode>
+     * @return std::expected<ttb::DataTable, ttb::utl::ReturnCode>
      */
     ttb::AnalyticTable extract_column(int col_index);
 
@@ -95,7 +95,7 @@ class AnalyticTable {
      * @brief Extracts the columns to the right of the specified index
      *
      * @param col_index Column the right of which other columns are extracted
-     * @return std::expected<ttb::DataTable, utl::ReturnCode>
+     * @return std::expected<ttb::DataTable, ttb::utl::ReturnCode>
      */
     ttb::AnalyticTable right_extract_of(int col_index);
 
@@ -104,7 +104,7 @@ class AnalyticTable {
      *
      * @param row_offset Starting row index (inclusive)
      * @param row_length Number of rows to slice (final_index=row_offset + row_length)
-     * @return std::expected<ttb::DataTable, utl::ReturnCode>
+     * @return std::expected<ttb::DataTable, ttb::utl::ReturnCode>
      */
     [[nodiscard]] ttb::AnalyticTable sliced(int64_t row_offset, int64_t row_length) const;
     [[nodiscard]] ttb::AnalyticTable copy_cols(std::vector<int> indices) const;
@@ -115,12 +115,12 @@ class AnalyticTable {
     void print_tail(int64_t n_rows = 20) const;
     void reset();
 
-    [[nodiscard]] const utl::shp<arrow::Table> &arrow_table() const { return _arrow_tb; }
+    [[nodiscard]] const ttb::utl::shp<arrow::Table> &arrow_table() const { return _arrow_tb; }
 
   protected:
     AnalyticTable() = default;
 
-    utl::shp<arrow::Table> _arrow_tb{nullptr};
+    ttb::utl::shp<arrow::Table> _arrow_tb{nullptr};
 
     void bottom_append(const AnalyticTable &table);
     void right_append(const AnalyticTable &table);
@@ -128,7 +128,7 @@ class AnalyticTable {
     to_arrow_scalar(const std::shared_ptr<arrow::DataType> &field_type, std::string value);
     arrow::compute::Expression
     apply_filter_xx(const std::vector<arrow::compute::Expression> expressions);
-    utl::shp<arrow::Table>
+    ttb::utl::shp<arrow::Table>
     submit_expressions(const std::vector<arrow::compute::Expression> expressions, ttb::LogicOp op);
 };
 

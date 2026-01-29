@@ -6,21 +6,21 @@
 #include <mutex>
 #include <ranges>
 
-std::string utl::to_lower(std::string word) {
+std::string ttb::utl::to_lower(std::string word) {
   auto rr = std::views::transform(
       word, [](char w) -> char { return static_cast<char>(std::tolower(w)); });
 
   return std::string{std::begin(rr), std::end(rr)};
 }
 
-std::string utl::to_upper(std::string word) {
+std::string ttb::utl::to_upper(std::string word) {
   auto rr = std::views::transform(
       word, [](char w) -> char { return static_cast<char>(std::toupper(w)); });
 
   return std::string{std::begin(rr), std::end(rr)};
 }
 
-void utl::initialize_arrow_compute() {
+void ttb::utl::initialize_arrow_compute() {
   static std::once_flag once;
 
   /// 'once' is marked done if lambda does not throw exception

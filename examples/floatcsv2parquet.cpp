@@ -14,12 +14,12 @@ int main(int argc, char *argv[]) {
   std::filesystem::path in_path{argv[1]};
   std::filesystem::path out_path{argv[2]};
 
-  if (utl::to_lower(in_path.extension()) != ".csv") {
-    std::cout << utl::to_lower(in_path.extension()) << std::endl;
+  if (ttb::utl::to_lower(in_path.extension()) != ".csv") {
+    std::cout << ttb::utl::to_lower(in_path.extension()) << std::endl;
     throw std::runtime_error("Input file is not a csv file");
   }
 
-  if (utl::to_lower(out_path.extension()) != ".parquet")
+  if (ttb::utl::to_lower(out_path.extension()) != ".parquet")
     throw std::runtime_error("Input file is not a csv file");
 
   auto time1 = std::chrono::system_clock::now();

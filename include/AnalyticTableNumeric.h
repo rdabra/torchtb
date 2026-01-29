@@ -7,7 +7,7 @@
 
 namespace ttb {
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 class AnalyticTableNumeric : public ttb::AnalyticTable {
   public:
     AnalyticTableNumeric(const AnalyticTableNumeric &) = delete;
@@ -16,13 +16,13 @@ class AnalyticTableNumeric : public ttb::AnalyticTable {
     AnalyticTableNumeric &operator=(AnalyticTableNumeric &&) = default;
     ~AnalyticTableNumeric() = default;
 
-    AnalyticTableNumeric(utl::shp<arrow::Table> &&arrow_table)
-        : ttb::AnalyticTable{std::move(arrow_table)}, _arrow_dtype(utl::arrow_dtype<T>()) {
+    AnalyticTableNumeric(ttb::utl::shp<arrow::Table> &&arrow_table)
+        : ttb::AnalyticTable{std::move(arrow_table)}, _arrow_dtype(ttb::utl::arrow_dtype<T>()) {
       this->to_dtype();
     };
 
     AnalyticTableNumeric(ttb::AnalyticTable &&data_table)
-        : ttb::AnalyticTable{std::move(data_table)}, _arrow_dtype(utl::arrow_dtype<T>()) {
+        : ttb::AnalyticTable{std::move(data_table)}, _arrow_dtype(ttb::utl::arrow_dtype<T>()) {
       this->to_dtype();
     }
 
@@ -38,7 +38,7 @@ class AnalyticTableNumeric : public ttb::AnalyticTable {
      */
     [[nodiscard]] std::vector<int64_t> argmax(ttb::Axis axis) const;
 
-    static utl::shp<arrow::Table>
+    static ttb::utl::shp<arrow::Table>
     make_numeric_table(std::unordered_map<std::string, std::vector<T>> &&field_and_data);
 
     [[nodiscard]] std::shared_ptr<arrow::DataType> arrow_dtype() const {
@@ -56,7 +56,7 @@ class AnalyticTableNumericError : public std::runtime_error {
     using std::runtime_error::runtime_error;
 };
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 using TbNumeric = AnalyticTableNumeric<T>;
 
 using TbInt = TbNumeric<int>;

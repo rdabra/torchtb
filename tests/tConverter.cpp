@@ -33,19 +33,19 @@ static void write_csv(const fs::path &p, const std::string &content) {
 }
 
 static ttb::AnalyticTableNumeric<float> make_numeric_table_float(int64_t rows = 3, int cols = 2) {
-  std::vector<utl::shp<arrow::Array>> arrays;
+  std::vector<ttb::utl::shp<arrow::Array>> arrays;
 
   for (int c = 0; c < cols; ++c) {
     arrow::FloatBuilder fb;
     for (int64_t r = 0; r < rows; ++r) {
       EXPECT_TRUE(fb.Append(static_cast<float>(r * 10 + c)).ok());
     }
-    utl::shp<arrow::Array> arr;
+    ttb::utl::shp<arrow::Array> arr;
     EXPECT_TRUE(fb.Finish(&arr).ok());
     arrays.push_back(arr);
   }
 
-  std::vector<utl::shp<arrow::Field>> fields;
+  std::vector<ttb::utl::shp<arrow::Field>> fields;
   for (int c = 0; c < cols; ++c) {
     fields.push_back(arrow::field("col_" + std::to_string(c), arrow::float32()));
   }
@@ -67,14 +67,14 @@ TEST(Converter_Test, ConvertsDataTableNumericFloat) {
 }
 
 TEST(Converter_Test, ConvertsDataTableNumericDouble) {
-  std::vector<utl::shp<arrow::Array>> arrays;
+  std::vector<ttb::utl::shp<arrow::Array>> arrays;
   arrow::DoubleBuilder db;
 
   for (int i = 0; i < 4; ++i) {
     EXPECT_TRUE(db.Append(static_cast<double>(i) * 2.5).ok());
   }
 
-  utl::shp<arrow::Array> arr;
+  ttb::utl::shp<arrow::Array> arr;
   EXPECT_TRUE(db.Finish(&arr).ok());
   arrays.push_back(arr);
 
@@ -115,7 +115,7 @@ TEST(Converter_Test, ReadsParquetAndConvertsToTensor) {
   // Write a simple parquet file first
   arrow::FloatBuilder fb;
   EXPECT_TRUE(fb.AppendValues({1.0f, 2.0f, 3.0f}).ok());
-  utl::shp<arrow::Array> arr;
+  ttb::utl::shp<arrow::Array> arr;
   EXPECT_TRUE(fb.Finish(&arr).ok());
 
   auto schema = arrow::schema({arrow::field("value", arrow::float32())});

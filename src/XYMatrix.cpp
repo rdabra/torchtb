@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <random>
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 ttb::XYMatrix::XYMatrix(ttb::AnalyticTableNumeric<T> &&data, int last_X_col) {
   auto my_data = std::move(data);
 
@@ -18,7 +18,7 @@ ttb::XYMatrix::XYMatrix(ttb::AnalyticTableNumeric<T> &&data, int last_X_col) {
   this->update_X_Y(std::move(my_data_T), last_X_col);
 };
 
-template <utl::NumericType T>
+template <ttb::utl::NumericType T>
 ttb::XYMatrix::XYMatrix(ttb::TbNumeric<T> &&X, ttb::TbNumeric<T> &&Y) {
   auto my_X = std::move(X);
   auto my_Y = std::move(Y);
@@ -28,8 +28,8 @@ ttb::XYMatrix::XYMatrix(ttb::TbNumeric<T> &&X, ttb::TbNumeric<T> &&Y) {
 
   auto X_T = ttb::Converter::torch_tensor<T>(std::move(my_X));
   auto Y_T = ttb::Converter::torch_tensor<T>(std::move(my_Y));
-  _X = utl::new_unp<torch::Tensor>(std::move(X_T));
-  _Y = utl::new_unp<torch::Tensor>(std::move(Y_T));
+  _X = ttb::utl::new_unp<torch::Tensor>(std::move(X_T));
+  _Y = ttb::utl::new_unp<torch::Tensor>(std::move(Y_T));
 }
 
 ttb::XYMatrix::XYMatrix(torch::Tensor &&data, int last_X_col) {
@@ -53,8 +53,8 @@ ttb::XYMatrix::XYMatrix(torch::Tensor &&X, torch::Tensor &&Y) {
 
   if (my_X.size(0) != my_Y.size(0))
     throw std::runtime_error("Incompatible tensors!");
-  _X = utl::new_unp<torch::Tensor>(std::move(my_X));
-  _Y = utl::new_unp<torch::Tensor>(std::move(my_Y));
+  _X = ttb::utl::new_unp<torch::Tensor>(std::move(my_X));
+  _Y = ttb::utl::new_unp<torch::Tensor>(std::move(my_Y));
 }
 
 [[nodiscard]] int64_t ttb::XYMatrix::n_rows() const {
@@ -201,8 +201,8 @@ void ttb::XYMatrix::update_X_Y(torch::Tensor &&XY, int last_col_X) {
   auto X = my_XY.narrow_copy(1, 0, last_col_X + 1);
   auto Y = my_XY.narrow_copy(1, last_col_X + 1, my_XY.size(1) - last_col_X - 1);
 
-  _X = utl::new_unp<torch::Tensor>(std::move(X));
-  _Y = utl::new_unp<torch::Tensor>(std::move(Y));
+  _X = ttb::utl::new_unp<torch::Tensor>(std::move(X));
+  _Y = ttb::utl::new_unp<torch::Tensor>(std::move(Y));
 }
 
 [[nodiscard]] torch::Tensor ttb::XYMatrix::reshape(const std::unique_ptr<torch::Tensor> &tensor,
