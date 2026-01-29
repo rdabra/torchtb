@@ -1,12 +1,14 @@
 #include <gtest/gtest.h>
 
 #include "AnalyticTable.h"
-#include "CSV_IO.h"
+#include "IO_FileCSV.h"
+#include "XYMatrix.h"
 
 #include <arrow/api.h>
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <torch/torch.h>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -51,11 +53,11 @@ ttb::AnalyticTable make_simple_table() {
 }
 } // namespace tcsv_io
 
-TEST(CSV_IO_Test, WithHeader_Succeeds) {
+TEST(IO_FileCSV_Test, WithHeader_Succeeds) {
   auto path = tcsv_io::unique_path("read_with_header");
   tcsv_io::write_text(path, "a,b\n1,2\n3,4\n");
 
-  ttb::CSV_IO reader(path, /*has_header=*/true);
+  ttb::IO_FileCSV reader(path, /*has_header=*/true);
   auto res = reader.read();
   EXPECT_EQ(res.n_rows(), 2);
   EXPECT_EQ(res.n_cols(), 2);
@@ -68,11 +70,11 @@ TEST(CSV_IO_Test, WithHeader_Succeeds) {
   fs::remove(path);
 }
 
-TEST(CSV_IO_Test, WithoutHeader_Succeeds) {
+TEST(IO_FileCSV_Test, WithoutHeader_Succeeds) {
   auto path = tcsv_io::unique_path("read_no_header");
   tcsv_io::write_text(path, "1,2\n3,4\n");
 
-  ttb::CSV_IO reader(path, /*has_header=*/false);
+  ttb::IO_FileCSV reader(path, /*has_header=*/false);
   auto res = reader.read();
   EXPECT_EQ(res.n_rows(), 2);
   EXPECT_EQ(res.n_cols(), 2);
@@ -80,24 +82,24 @@ TEST(CSV_IO_Test, WithoutHeader_Succeeds) {
   fs::remove(path);
 }
 
-TEST(CSV_IO_Test, MissingFile_Fails) {
+TEST(IO_FileCSV_Test, MissingFile_Fails) {
   auto path = tcsv_io::unique_path("missing_file");
   // Do not create the file
 
-  ttb::CSV_IO reader(path, true);
-  EXPECT_THROW(auto x = reader.read(), ttb::CSV_IOError);
+  ttb::IO_FileCSV reader(path, true);
+  EXPECT_THROW(auto x = reader.read(), ttb::IO_FileCSVError);
 }
 
-TEST(CSV_IO_Test, WritesFileAndIsReadable) {
+TEST(IO_FileCSV_Test, WritesFileAndIsReadable) {
   auto path = tcsv_io::unique_path("write_roundtrip");
 
   auto table = tcsv_io::make_simple_table();
-  ttb::CSV_IO writer(path, /*has_header=*/true);
-  writer.write(table, ',');
+  ttb::IO_FileCSV writer(path, /*has_header=*/true);
+  writer.write(table);
   ASSERT_TRUE(fs::exists(path));
 
   // Optional round-trip check
-  ttb::CSV_IO reader(path, /*has_header=*/true);
+  ttb::IO_FileCSV reader(path, /*has_header=*/true);
   auto res = reader.read();
   EXPECT_EQ(res.n_rows(), 3);
   EXPECT_EQ(res.n_cols(), 2);
@@ -106,6 +108,54 @@ TEST(CSV_IO_Test, WritesFileAndIsReadable) {
   ASSERT_EQ(names.size(), 2u);
   EXPECT_EQ(names[0], "f32");
   EXPECT_EQ(names[1], "i64");
+
+  fs::remove(path);
+}
+
+TEST(IO_FileCSV_Test, WriteTensor_RoundTrip) {
+  auto path = tcsv_io::unique_path("write_tensor_roundtrip");
+
+  auto tensor =
+      torch::tensor({{1.0f, 2.0f}, {3.0f, 4.0f}, {5.0f, 6.0f}}, torch::dtype(torch::kFloat32));
+
+  ttb::IO_FileCSV writer(path, /*has_header=*/true);
+  writer.write_tensor<float>(std::move(tensor));
+  ASSERT_TRUE(fs::exists(path));
+
+  ttb::IO_FileCSV reader(path, /*has_header=*/true);
+  auto res = reader.read();
+  EXPECT_EQ(res.n_rows(), 3);
+  EXPECT_EQ(res.n_cols(), 2);
+
+  auto names = res.col_names();
+  ASSERT_EQ(names.size(), 2u);
+  EXPECT_EQ(names[0], "col_1");
+  EXPECT_EQ(names[1], "col_2");
+
+  fs::remove(path);
+}
+
+TEST(IO_FileCSV_Test, WriteMatrix_RoundTrip) {
+  auto path = tcsv_io::unique_path("write_matrix_roundtrip");
+
+  auto X = torch::rand({4, 2}, torch::dtype(torch::kFloat32));
+  auto Y = torch::rand({4, 1}, torch::dtype(torch::kFloat32));
+  ttb::XYMatrix xy(std::move(X), std::move(Y));
+
+  ttb::IO_FileCSV writer(path, /*has_header=*/true);
+  writer.write_matrix<float>(std::move(xy));
+  ASSERT_TRUE(fs::exists(path));
+
+  ttb::IO_FileCSV reader(path, /*has_header=*/true);
+  auto res = reader.read();
+  EXPECT_EQ(res.n_rows(), 4);
+  EXPECT_EQ(res.n_cols(), 3);
+
+  auto names = res.col_names();
+  ASSERT_EQ(names.size(), 3u);
+  EXPECT_EQ(names[0], "col_1");
+  EXPECT_EQ(names[1], "col_2");
+  EXPECT_EQ(names[2], "col_3");
 
   fs::remove(path);
 }

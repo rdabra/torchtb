@@ -6,8 +6,8 @@ find_package(GTest REQUIRED)
 add_executable(
   torchtb_tests
   torchtb_tests.cpp
-  tCSV_IO.cpp
-  tParquet_IO.cpp
+  tIO_FileCSV.cpp
+  tIO_FileParquet.cpp
   tAnalyticTable.cpp
   tConverter.cpp
   tXYMatrix.cpp
@@ -27,4 +27,3 @@ target_link_libraries(
 
 include(GoogleTest)
 gtest_discover_tests(torchtb_tests)
-

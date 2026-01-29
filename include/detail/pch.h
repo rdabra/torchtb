@@ -57,7 +57,7 @@
 #include <arrow/type_fwd.h>
 #include <arrow/type_traits.h>
 
-// Parquet I/O (used by Parquet_IO)
+// Parquet I/O (used by IO_FileParquet)
 #include <parquet/arrow/reader.h>
 #include <parquet/arrow/writer.h>
 #include <parquet/platform.h>

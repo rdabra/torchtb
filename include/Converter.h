@@ -3,11 +3,11 @@
 #pragma once
 
 #include "AnalyticTableNumeric.h"
-#include "CSV_IO.h"
+#include "IO_FileCSV.h"
 #include "detail/utils.h"
 #include <torch/data/dataloader_options.h>
 
-#include "Parquet_IO.h"
+#include "IO_FileParquet.h"
 #include <ATen/core/TensorBody.h>
 #include <arrow/array/array_base.h>
 #include <torch/data/dataloader.h>
@@ -27,10 +27,10 @@ class Converter {
     static torch::Tensor torch_tensor(ttb::AnalyticTableNumeric<T> &&data);
 
     template <utl::NumericType T>
-    static torch::Tensor torch_tensor(ttb::CSV_IO &&reader);
+    static torch::Tensor torch_tensor(ttb::IO_FileCSV &&reader);
 
     template <utl::NumericType T>
-    static torch::Tensor torch_tensor(ttb::Parquet_IO &&reader);
+    static torch::Tensor torch_tensor(ttb::IO_FileParquet &&reader);
 
     template <utl::NumericType T>
     static ttb::AnalyticTableNumeric<T> analytic_table(torch::Tensor &&tensor);

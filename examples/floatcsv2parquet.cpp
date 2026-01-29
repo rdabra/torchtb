@@ -1,6 +1,6 @@
-#include "CSV_IO.h"
+#include "IO_FileCSV.h"
 #include "Converter.h"
-#include "Parquet_IO.h"
+#include "IO_FileParquet.h"
 #include "detail/utils.h"
 #include <chrono>
 #include <filesystem>
@@ -25,14 +25,14 @@ int main(int argc, char *argv[]) {
   auto time1 = std::chrono::system_clock::now();
 
   std::cout << "Reading input file..." << std::endl;
-  auto in_file = ttb::CSV_IO{in_path, false};
+  auto in_file = ttb::IO_FileCSV{in_path, false};
   auto r_in_data = in_file.read();
 
   auto T = ttb::Converter::torch_tensor<float>(std::move(r_in_data));
 
   std::cout << "Writing output file..." << std::endl;
-  auto out_file = ttb::Parquet_IO{out_path};
-  out_file.write<float>(std::move(T));
+  auto out_file = ttb::IO_FileParquet{out_path};
+  out_file.write_tensor<float>(std::move(T));
 
   auto time2 = std::chrono::system_clock::now();
 

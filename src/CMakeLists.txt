@@ -1,8 +1,9 @@
 #################################################### Library Sources ####################################################
 
 set(TORCHTB_SOURCES 
-  CSV_IO.cpp
-  Parquet_IO.cpp
+  IO_File.cpp
+  IO_FileCSV.cpp
+  IO_FileParquet.cpp
   AnalyticTable.cpp
   AnalyticTableNumeric.cpp
   Converter.cpp
@@ -57,5 +58,3 @@ target_include_directories(torchtb_shared PUBLIC
 )
 target_link_libraries(torchtb_shared PUBLIC thirdparty_libs)
 set_target_properties(torchtb_shared PROPERTIES OUTPUT_NAME "torchtb")
-
-

@@ -96,7 +96,7 @@ ttb::AnalyticTableNumeric<T> ttb::Converter::analytic_table(torch::Tensor &&tens
 };
 
 template <utl::NumericType T>
-torch::Tensor ttb::Converter::torch_tensor(ttb::CSV_IO &&reader) {
+torch::Tensor ttb::Converter::torch_tensor(ttb::IO_FileCSV &&reader) {
   auto my_reader = std::move(reader);
 
   auto read = my_reader.read_numeric<T>();
@@ -105,7 +105,7 @@ torch::Tensor ttb::Converter::torch_tensor(ttb::CSV_IO &&reader) {
 }
 
 template <utl::NumericType T>
-torch::Tensor ttb::Converter::torch_tensor(ttb::Parquet_IO &&reader) {
+torch::Tensor ttb::Converter::torch_tensor(ttb::IO_FileParquet &&reader) {
   auto my_reader = std::move(reader);
   auto r_data = my_reader.read_numeric<T>();
 
@@ -116,8 +116,8 @@ torch::Tensor ttb::Converter::torch_tensor(ttb::Parquet_IO &&reader) {
 #define INSTANTIATE_CONVERTER_FUNCS(T)                                                             \
   template torch::Tensor ttb::Converter::torch_tensor(ttb::AnalyticTableNumeric<T> &&);            \
   template ttb::AnalyticTableNumeric<T> ttb::Converter::analytic_table(torch::Tensor &&t);         \
-  template torch::Tensor ttb::Converter::torch_tensor<T>(ttb::CSV_IO &&);                          \
-  template torch::Tensor ttb::Converter::torch_tensor<T>(ttb::Parquet_IO &&);
+  template torch::Tensor ttb::Converter::torch_tensor<T>(ttb::IO_FileCSV &&);                      \
+  template torch::Tensor ttb::Converter::torch_tensor<T>(ttb::IO_FileParquet &&);
 
 INSTANTIATE_CONVERTER_FUNCS(int)
 INSTANTIATE_CONVERTER_FUNCS(int64_t)

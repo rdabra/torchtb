@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
 #include "AnalyticTableNumeric.h"
-#include "CSV_IO.h"
+#include "IO_FileCSV.h"
 #include "Converter.h"
-#include "Parquet_IO.h"
+#include "IO_FileParquet.h"
 #include "detail/utils.h"
 
 #include <arrow/api.h>
@@ -93,7 +93,7 @@ TEST(Converter_Test, ReadsCSVAndConvertToTensor) {
   auto path = tconverter::unique_file("csv_to_tensor", ".csv");
   tconverter::write_csv(path, "a,b\n1.0,2.0\n3.0,4.0\n5.0,6.0\n");
 
-  ttb::CSV_IO reader(path, true);
+  ttb::IO_FileCSV reader(path, true);
   auto tensor = ttb::Converter::torch_tensor<float>(std::move(reader));
   EXPECT_EQ(tensor.dim(), 2);
   EXPECT_EQ(tensor.size(0), 3);
@@ -105,8 +105,8 @@ TEST(Converter_Test, ReadsCSVAndConvertToTensor) {
 TEST(Converter_Test, FailsOnMissingFile) {
   auto path = tconverter::unique_file("missing_csv", ".csv");
 
-  ttb::CSV_IO reader(path, true);
-  EXPECT_THROW(ttb::Converter::torch_tensor<float>(std::move(reader)), ttb::CSV_IOError);
+  ttb::IO_FileCSV reader(path, true);
+  EXPECT_THROW(ttb::Converter::torch_tensor<float>(std::move(reader)), ttb::IO_FileCSVError);
 }
 
 TEST(Converter_Test, ReadsParquetAndConvertsToTensor) {
@@ -122,11 +122,11 @@ TEST(Converter_Test, ReadsParquetAndConvertsToTensor) {
   auto table = arrow::Table::Make(schema, {arr});
 
   ttb::AnalyticTable dt{std::move(table)};
-  ttb::Parquet_IO writer(path);
+  ttb::IO_FileParquet writer(path);
   writer.write(dt);
 
   // Now read it back
-  ttb::Parquet_IO reader(path);
+  ttb::IO_FileParquet reader(path);
   auto tensor = ttb::Converter::torch_tensor<float>(std::move(reader));
   EXPECT_EQ(tensor.dim(), 2);
   EXPECT_EQ(tensor.size(0), 3);
@@ -137,8 +137,8 @@ TEST(Converter_Test, ReadsParquetAndConvertsToTensor) {
 TEST(Converter_Test, FailsOnMissingFileFromParquet) {
   auto path = tconverter::unique_file("missing_pq", ".parquet");
 
-  ttb::Parquet_IO reader(path);
-  EXPECT_THROW(ttb::Converter::torch_tensor<float>(std::move(reader)), ttb::Parquet_IOError);
+  ttb::IO_FileParquet reader(path);
+  EXPECT_THROW(ttb::Converter::torch_tensor<float>(std::move(reader)), ttb::IO_FileParquetError);
 }
 
 TEST(Converter_Test, ConvertsTensorToDataTableFloat) {

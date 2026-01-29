@@ -1,5 +1,5 @@
-#include "CSV_IO.h"
-#include "Parquet_IO.h"
+#include "IO_FileCSV.h"
+#include "IO_FileParquet.h"
 #include "XYMatrix.h"
 #include <chrono>
 #include <iostream>
@@ -16,7 +16,7 @@ int main() {
   std::cout << "tb.n_rows(): " << tb.n_rows() << std::endl;
   std::cout << "result[0]: " << result[0] << std::endl;
 
-  ttb::Parquet_IO p{"/home/roberto/my_works/personal/torchtb/data/test_T.parquet"};
+  ttb::IO_FileParquet p{"/home/roberto/my_works/personal/torchtb/data/test_T.parquet"};
   p.write(tb);
 
   auto time2 = std::chrono::system_clock::now();
