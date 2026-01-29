@@ -1,6 +1,6 @@
 #include "IO_FileCSV.h"
 #include "AnalyticTable.h"
-#include "detail/utils.h"
+#include "detail/ttbutils.h"
 
 #include <arrow/api.h>
 #include <arrow/csv/api.h>

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "AnalyticTable.h"
-#include "detail/utils.h"
+#include "detail/ttbutils.h"
 
 namespace ttb {
 

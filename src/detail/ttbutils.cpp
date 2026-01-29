@@ -1,4 +1,4 @@
-#include "detail/utils.h"
+#include "detail/ttbutils.h"
 #include <arrow/compute/api.h>
 #include <arrow/status.h>
 #include <cctype>

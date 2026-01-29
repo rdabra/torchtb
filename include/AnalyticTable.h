@@ -2,7 +2,7 @@
 #define ANALYTICTABLE_H
 #pragma once
 
-#include "detail/utils.h"
+#include "detail/ttbutils.h"
 
 #include <arrow/type.h>
 #include <cstdint>
@@ -50,6 +50,7 @@ class AnalyticTable {
     [[nodiscard]] int64_t n_rows() const;
     [[nodiscard]] int n_cols() const;
     [[nodiscard]] std::vector<std::string> col_names() const;
+    [[nodiscard]] std::string col_name(int index) const;
     [[nodiscard]] std::vector<std::string> col_dtypes() const;
     [[nodiscard]] std::optional<int> col_index(std::string name) const;
 
@@ -62,8 +63,8 @@ class AnalyticTable {
     void move_column(int from_index, int to_index);
     void sort(int col_index, ttb::SortOrder mode = ttb::SortOrder::ASC);
 
-    void filter(const std::vector<ttb::Criterion> &criteria,
-                const ttb::LogicOp &op = ttb::LogicOp::AND);
+    void keep_rows(const std::vector<ttb::Criterion> &criteria,
+                   const ttb::LogicOp &op = ttb::LogicOp::AND);
     void drop_nulls(const std::vector<std::string> &field_names,
                     const ttb::LogicOp &op = ttb::LogicOp::AND);
     void drop_nulls(const ttb::LogicOp &op = ttb::LogicOp::AND);

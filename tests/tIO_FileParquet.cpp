@@ -3,7 +3,7 @@
 #include "AnalyticTable.h"
 #include "AnalyticTableNumeric.h"
 #include "IO_FileParquet.h"
-#include "detail/utils.h"
+#include "detail/ttbutils.h"
 
 #include <arrow/api.h>
 #include <filesystem>

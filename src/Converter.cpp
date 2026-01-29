@@ -1,6 +1,6 @@
 #include "Converter.h"
 #include "AnalyticTable.h"
-#include "detail/utils.h"
+#include "detail/ttbutils.h"
 
 #include <ATen/ops/from_blob.h>
 #include <arrow/api.h>

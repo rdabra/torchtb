@@ -1,8 +1,6 @@
 #include "IO_FileParquet.h"
 #include "AnalyticTable.h"
-#include "AnalyticTableNumeric.h"
-#include "Converter.h"
-#include "detail/utils.h"
+#include "detail/ttbutils.h"
 
 #include <arrow/io/api.h>
 #include <arrow/type_fwd.h>

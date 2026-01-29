@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "AnalyticTable.h"
-#include "detail/utils.h"
+#include "detail/ttbutils.h"
 
 #include <arrow/api.h>
 #include <memory>
@@ -67,6 +67,12 @@ TEST(AnalyticTable_Test, ReturnsColumnNames) {
   ASSERT_EQ(names.size(), 2u);
   EXPECT_EQ(names[0], "col_int");
   EXPECT_EQ(names[1], "col_float");
+}
+
+TEST(AnalyticTable_Test, ReturnsColumnNameByIndex) {
+  auto table = make_simple_table();
+  EXPECT_EQ(table.col_name(0), "col_int");
+  EXPECT_EQ(table.col_name(1), "col_float");
 }
 
 TEST(AnalyticTable_Test, ReturnsColumnTypes) {
@@ -615,7 +621,7 @@ TEST(AnalyticTable_Test, FilterRemovesRowsNotMatchingCriterion) {
 
   std::vector<ttb::Criterion> criteria{{"id", ttb::Criterion::Condition::GREATER_EQUAL, "2"},
                                        {"cat", ttb::Criterion::Condition::EQUAL, "b"}};
-  analytic_table.filter(criteria);
+  analytic_table.keep_rows(criteria);
 
   EXPECT_EQ(analytic_table.n_rows(), 2);
 
@@ -634,7 +640,7 @@ TEST(AnalyticTable_Test, FilterRemovesRowsNotMatchingCriterion) {
   EXPECT_EQ(cat_array_filtered->GetString(0), "b");
   EXPECT_EQ(cat_array_filtered->GetString(1), "b");
 
-  or_table.filter(criteria, ttb::LogicOp::OR);
+  or_table.keep_rows(criteria, ttb::LogicOp::OR);
 
   EXPECT_EQ(or_table.n_rows(), 4);
 

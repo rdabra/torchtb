@@ -9,7 +9,7 @@ set(TORCHTB_SOURCES
   Converter.cpp
   XYMatrix.cpp
   TrainingBundle.cpp
-  detail/utils.cpp
+  detail/ttbutils.cpp
 )
 
 

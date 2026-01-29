@@ -1,5 +1,5 @@
 #include "AnalyticTable.h"
-#include "detail/utils.h"
+#include "detail/ttbutils.h"
 
 #include <algorithm>
 #include <arrow/acero/exec_plan.h>
@@ -22,6 +22,12 @@
 std::vector<std::string> ttb::AnalyticTable::col_names() const {
   return _arrow_tb->schema()->field_names();
   ;
+}
+
+[[nodiscard]] std::string ttb::AnalyticTable::col_name(int index) const {
+  if (index < 0 || index >= this->n_rows())
+    throw AnalyticTableError("index out of bounds");
+  return this->col_names()[index];
 }
 
 std::vector<std::string> ttb::AnalyticTable::col_dtypes() const {
@@ -272,8 +278,8 @@ std::string to_acero_condition(ttb::Criterion::Condition condition) {
 
 } // namespace filter
 
-void ttb::AnalyticTable::filter(const std::vector<ttb::Criterion> &criteria,
-                                const ttb::LogicOp &op) {
+void ttb::AnalyticTable::keep_rows(const std::vector<ttb::Criterion> &criteria,
+                                   const ttb::LogicOp &op) {
   if (criteria.empty())
     throw ttb::AnalyticTableError("Criteria is empty");
 
@@ -356,7 +362,7 @@ ttb::utl::shp<arrow::Array> to_array(const ttb::AnalyticTable &col_clone) {
 }
 
 ttb::utl::shp<arrow::Array> build_one_hot_col(const ttb::utl::shp<arrow::Array> &col_as_array,
-                                         const ttb::utl::shp<arrow::Scalar> &distinct_value) {
+                                              const ttb::utl::shp<arrow::Scalar> &distinct_value) {
   arrow::Int32Builder builder(arrow::default_memory_pool());
   auto n_rows = col_as_array->length();
   auto status = builder.Resize(n_rows);

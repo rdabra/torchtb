@@ -1,5 +1,5 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef TTBUTILS_H
+#define TTBUTILS_H
 #pragma once
 
 #include <arrow/status.h>

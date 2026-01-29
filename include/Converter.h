@@ -4,7 +4,7 @@
 
 #include "AnalyticTableNumeric.h"
 #include "IO_FileCSV.h"
-#include "detail/utils.h"
+#include "detail/ttbutils.h"
 #include <torch/data/dataloader_options.h>
 
 #include "IO_FileParquet.h"

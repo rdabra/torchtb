@@ -4,7 +4,7 @@
 
 #include "AnalyticTable.h"
 #include "AnalyticTableNumeric.h"
-#include "detail/utils.h"
+#include "detail/ttbutils.h"
 
 using ttb::AnalyticTableNumeric;
 using ttb::TbNumeric;
