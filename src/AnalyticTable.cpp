@@ -38,6 +38,14 @@ std::vector<std::string> ttb::AnalyticTable::col_dtypes() const {
   return resp;
 }
 
+[[nodiscard]] std::vector<bool> ttb::AnalyticTable::numeric_cols() const {
+  std::vector<bool> resp;
+  for (auto &elem : _arrow_tb->schema()->fields())
+    resp.emplace_back(arrow::is_numeric(*elem->type()));
+
+  return resp;
+}
+
 std::optional<int> ttb::AnalyticTable::col_index(std::string name) const {
   auto names = this->col_names();
   if (auto it = std::ranges::find(names, name); it != std::end(names))
@@ -65,12 +73,25 @@ void ttb::AnalyticTable::remove_col(int col_index) {
   _arrow_tb = aux.MoveValueUnsafe();
 }
 
-void ttb::AnalyticTable::keep_cols(std::vector<int> indices) {
+void ttb::AnalyticTable::keep_cols(const std::vector<int> &indices) {
   auto aux = _arrow_tb->SelectColumns(indices);
   if (!aux.ok())
     throw AnalyticTableError(aux.status().ToString());
 
   _arrow_tb = aux.MoveValueUnsafe();
+}
+
+void ttb::AnalyticTable::keep_numeric_cols() {
+  auto v_numeric_cols = this->numeric_cols();
+  std::deque<bool> numeric_cols{std::begin(v_numeric_cols), std::end(v_numeric_cols)};
+  int col = 0;
+  while (numeric_cols.size() > 0) {
+    if (!numeric_cols.front())
+      this->remove_col(col);
+    else
+      ++col;
+    numeric_cols.pop_front();
+  }
 }
 
 void ttb::AnalyticTable::bottom_append(const AnalyticTable &table) {

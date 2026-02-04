@@ -52,10 +52,12 @@ class AnalyticTable {
     [[nodiscard]] std::vector<std::string> col_names() const;
     [[nodiscard]] std::string col_name(int index) const;
     [[nodiscard]] std::vector<std::string> col_dtypes() const;
+    [[nodiscard]] std::vector<bool> numeric_cols() const;
     [[nodiscard]] std::optional<int> col_index(std::string name) const;
 
     void remove_col(int index);
-    void keep_cols(std::vector<int> indices);
+    void keep_cols(const std::vector<int> &indices);
+    void keep_numeric_cols();
     void append(const AnalyticTable &table, const ttb::Axis &axis);
     void rename_cols(const std::vector<std::string> &names);
     void slice(int64_t row_offset, int64_t row_length);
@@ -125,10 +127,10 @@ class AnalyticTable {
 
     void bottom_append(const AnalyticTable &table);
     void right_append(const AnalyticTable &table);
+
     std::shared_ptr<arrow::Scalar>
     to_arrow_scalar(const std::shared_ptr<arrow::DataType> &field_type, std::string value);
-    arrow::compute::Expression
-    apply_filter_xx(const std::vector<arrow::compute::Expression> expressions);
+
     ttb::utl::shp<arrow::Table>
     submit_expressions(const std::vector<arrow::compute::Expression> expressions, ttb::LogicOp op);
 };

@@ -262,6 +262,67 @@ TEST(AnalyticTableNumeric_Test, FailsOnInvalidIndex) {
   EXPECT_THROW(tb.one_hot_expand(99), std::runtime_error);
 }
 
+// ------------ null_to_zero tests ------------
+
+TEST(AnalyticTableNumeric_Test, NullToZeroReplacesNullsWithZero) {
+  arrow::FloatBuilder f0_chunk0;
+  arrow::FloatBuilder f0_chunk1;
+  arrow::FloatBuilder f1_chunk0;
+  arrow::FloatBuilder f1_chunk1;
+
+  ASSERT_TRUE(f0_chunk0.Append(1.5F).ok());
+  ASSERT_TRUE(f0_chunk0.AppendNull().ok());
+  ASSERT_TRUE(f0_chunk1.AppendNull().ok());
+  ASSERT_TRUE(f0_chunk1.Append(4.5F).ok());
+
+  ASSERT_TRUE(f1_chunk0.AppendNull().ok());
+  ASSERT_TRUE(f1_chunk0.Append(2.0F).ok());
+  ASSERT_TRUE(f1_chunk1.Append(3.0F).ok());
+  ASSERT_TRUE(f1_chunk1.AppendNull().ok());
+
+  std::shared_ptr<arrow::Array> c0a, c0b, c1a, c1b;
+  ASSERT_TRUE(f0_chunk0.Finish(&c0a).ok());
+  ASSERT_TRUE(f0_chunk1.Finish(&c0b).ok());
+  ASSERT_TRUE(f1_chunk0.Finish(&c1a).ok());
+  ASSERT_TRUE(f1_chunk1.Finish(&c1b).ok());
+
+  auto col0 = std::make_shared<arrow::ChunkedArray>(
+      std::vector<std::shared_ptr<arrow::Array>>{c0a, c0b}, arrow::float32());
+  auto col1 = std::make_shared<arrow::ChunkedArray>(
+      std::vector<std::shared_ptr<arrow::Array>>{c1a, c1b}, arrow::float32());
+
+  auto schema =
+      arrow::schema({arrow::field("f0", arrow::float32()), arrow::field("f1", arrow::float32())});
+  auto table = arrow::Table::Make(schema, {col0, col1}, 4);
+
+  TbNumeric<float> tb(std::move(table));
+  tb.null_to_zero();
+
+  auto out = tb.arrow_table();
+  ASSERT_EQ(out->num_rows(), 4);
+  ASSERT_EQ(out->num_columns(), 2);
+  EXPECT_EQ(out->column(0)->null_count(), 0);
+  EXPECT_EQ(out->column(1)->null_count(), 0);
+
+  auto r_col0 = arrow::Concatenate(out->column(0)->chunks(), arrow::default_memory_pool());
+  ASSERT_TRUE(r_col0.ok());
+  auto arr0 = std::static_pointer_cast<arrow::FloatArray>(r_col0.MoveValueUnsafe());
+  ASSERT_EQ(arr0->length(), 4);
+  EXPECT_FLOAT_EQ(arr0->Value(0), 1.5F);
+  EXPECT_FLOAT_EQ(arr0->Value(1), 0.0F);
+  EXPECT_FLOAT_EQ(arr0->Value(2), 0.0F);
+  EXPECT_FLOAT_EQ(arr0->Value(3), 4.5F);
+
+  auto r_col1 = arrow::Concatenate(out->column(1)->chunks(), arrow::default_memory_pool());
+  ASSERT_TRUE(r_col1.ok());
+  auto arr1 = std::static_pointer_cast<arrow::FloatArray>(r_col1.MoveValueUnsafe());
+  ASSERT_EQ(arr1->length(), 4);
+  EXPECT_FLOAT_EQ(arr1->Value(0), 0.0F);
+  EXPECT_FLOAT_EQ(arr1->Value(1), 2.0F);
+  EXPECT_FLOAT_EQ(arr1->Value(2), 3.0F);
+  EXPECT_FLOAT_EQ(arr1->Value(3), 0.0F);
+}
+
 // ------------ Type alias tests ------------
 
 TEST(AnalyticTableNumeric_Test, UsesShortAliases) {

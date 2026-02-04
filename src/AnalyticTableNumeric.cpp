@@ -195,6 +195,45 @@ void ttb::AnalyticTableNumeric<T>::one_hot_expand(int col_index) {
   this->to_dtype();
 }
 
+template <ttb::utl::NumericType T>
+inline void ttb::AnalyticTableNumeric<T>::null_to_zero() {
+  ttb::utl::initialize_arrow_compute();
+
+  auto fields = _arrow_tb->schema()->fields();
+
+  std::vector<ttb::utl::shp<arrow::ChunkedArray>> new_cols;
+  new_cols.reserve(_arrow_tb->num_columns());
+
+  for (int i{0}; i < _arrow_tb->num_columns(); ++i) {
+    auto col = _arrow_tb->column(i);
+    auto type = col->type();
+
+    auto zero = arrow::MakeScalar<T>(0);
+
+    std::vector<ttb::utl::shp<arrow::Array>> new_chunks;
+    new_chunks.reserve(col->num_chunks());
+
+    for (auto &chunk : col->chunks()) {
+      auto r_is_null = arrow::compute::CallFunction("is_null", {chunk});
+      if (!r_is_null.ok())
+        throw ttb::AnalyticTableNumericError(r_is_null.status().ToString());
+
+      auto r_new_chunk = arrow::compute::CallFunction(
+          "if_else", {r_is_null.MoveValueUnsafe(), arrow::Datum{zero}, arrow::Datum{chunk}});
+      if (!r_new_chunk.ok())
+        throw ttb::AnalyticTableNumericError(r_new_chunk.status().ToString());
+      new_chunks.emplace_back(r_new_chunk.MoveValueUnsafe().make_array());
+    }
+
+    new_cols.emplace_back(ttb::utl::new_shp<arrow::ChunkedArray>(std::move(new_chunks), type));
+  }
+
+  auto new_table = arrow::Table::Make(arrow::schema(std::move(fields)), std::move(new_cols),
+                                      _arrow_tb->num_rows());
+
+  _arrow_tb = new_table;
+}
+
 template class ttb::AnalyticTableNumeric<int>;
 template class ttb::AnalyticTableNumeric<int64_t>;
 template class ttb::AnalyticTableNumeric<float>;

@@ -16,7 +16,7 @@
 namespace rread {
 
 ttb::utl::shp<arrow::Table> read_file(const std::filesystem::path &path, bool has_header,
-                                 char separator) {
+                                      char separator) {
   auto infile = arrow::io::ReadableFile::Open(path);
   if (!infile.ok())
     throw ttb::IO_FileCSVError(infile.status().ToString());
@@ -28,6 +28,9 @@ ttb::utl::shp<arrow::Table> read_file(const std::filesystem::path &path, bool ha
   parse_opts.delimiter = separator;
   read_opts.autogenerate_column_names = !has_header;
   read_opts.use_threads = true;
+  convert_opts.null_values.emplace_back("NULL");
+  convert_opts.null_values.emplace_back("Null");
+  convert_opts.null_values.emplace_back("null");
 
   auto reader =
       arrow::csv::TableReader::Make(arrow::io::default_io_context(), infile.MoveValueUnsafe(),

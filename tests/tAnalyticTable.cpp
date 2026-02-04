@@ -118,6 +118,46 @@ TEST(AnalyticTable_Test, KeepsSpecifiedColumns) {
   EXPECT_EQ(names[0], "col_float");
 }
 
+TEST(AnalyticTable_Test, KeepNumericColsRemovesAllNonNumericColumns) {
+  arrow::Int64Builder id_builder;
+  arrow::StringBuilder label_builder;
+  arrow::FloatBuilder score_builder;
+  arrow::StringBuilder note_builder;
+
+  ASSERT_TRUE(id_builder.AppendValues({1, 2, 3}).ok());
+  ASSERT_TRUE(label_builder.AppendValues({"a", "b", "c"}).ok());
+  ASSERT_TRUE(score_builder.AppendValues({10.0f, 20.0f, 30.0f}).ok());
+  ASSERT_TRUE(note_builder.AppendValues({"x", "y", "z"}).ok());
+
+  std::shared_ptr<arrow::Array> id_array, label_array, score_array, note_array;
+  ASSERT_TRUE(id_builder.Finish(&id_array).ok());
+  ASSERT_TRUE(label_builder.Finish(&label_array).ok());
+  ASSERT_TRUE(score_builder.Finish(&score_array).ok());
+  ASSERT_TRUE(note_builder.Finish(&note_array).ok());
+
+  auto schema = arrow::schema({arrow::field("id", arrow::int64()),
+                               arrow::field("label", arrow::utf8()),
+                               arrow::field("score", arrow::float32()),
+                               arrow::field("note", arrow::utf8())});
+  auto arrow_table = arrow::Table::Make(schema, {id_array, label_array, score_array, note_array});
+  ttb::AnalyticTable table{ttb::utl::shp<arrow::Table>(arrow_table)};
+
+  table.keep_numeric_cols();
+
+  EXPECT_EQ(table.n_rows(), 3);
+  EXPECT_EQ(table.n_cols(), 2);
+
+  auto names = table.col_names();
+  ASSERT_EQ(names.size(), 2);
+  EXPECT_EQ(names[0], "id");
+  EXPECT_EQ(names[1], "score");
+
+  auto dtypes = table.col_dtypes();
+  ASSERT_EQ(dtypes.size(), 2);
+  EXPECT_EQ(dtypes[0], "int64");
+  EXPECT_EQ(dtypes[1], "float");
+}
+
 TEST(AnalyticTable_Test, FailsOnInvalidIndices) {
   auto table = make_simple_table();
   EXPECT_THROW(table.keep_cols({0, 99}), ttb::AnalyticTableError);

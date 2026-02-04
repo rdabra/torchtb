@@ -42,6 +42,8 @@ torch::Tensor to_tensor(const ttb::utl::shp<arrow::Array> &arr) {
 template <ttb::utl::NumericType T>
 torch::Tensor ttb::Converter::torch_tensor(ttb::AnalyticTableNumeric<T> &&data) {
   auto my_data = std::move(data);
+  my_data.null_to_zero();
+
   std::vector<torch::Tensor> tensors;
   for (int i{0}; i < my_data.n_cols(); ++i) {
     auto column = my_data.copy_cols({i});
@@ -115,7 +117,7 @@ torch::Tensor ttb::Converter::torch_tensor(ttb::IO_FileParquet &&reader) {
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INSTANTIATE_CONVERTER_FUNCS(T)                                                             \
   template torch::Tensor ttb::Converter::torch_tensor(ttb::AnalyticTableNumeric<T> &&);            \
-  template ttb::AnalyticTableNumeric<T> ttb::Converter::analytic_table(torch::Tensor &&t);         \
+  template ttb::AnalyticTableNumeric<T> ttb::Converter::analytic_table(torch::Tensor &&);          \
   template torch::Tensor ttb::Converter::torch_tensor<T>(ttb::IO_FileCSV &&);                      \
   template torch::Tensor ttb::Converter::torch_tensor<T>(ttb::IO_FileParquet &&);
 

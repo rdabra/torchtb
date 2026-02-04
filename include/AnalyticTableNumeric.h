@@ -28,6 +28,8 @@ class AnalyticTableNumeric : public ttb::AnalyticTable {
 
     AnalyticTableNumeric(std::unordered_map<std::string, std::vector<T>> &&field_and_data);
 
+    void null_to_zero();
+
     void one_hot_expand(int col_index) override;
 
     /**
