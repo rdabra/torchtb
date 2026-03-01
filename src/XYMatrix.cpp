@@ -7,27 +7,27 @@
 #include <random>
 
 template <ttb::utl::NumericType T>
-ttb::XYMatrix::XYMatrix(ttb::AnalyticTableNumeric<T> &&data, int last_X_col) {
+ttb::XYMatrix::XYMatrix(ttb::TbNumeric<T> &&data, int last_X_col, const torch::Device &device) {
   auto my_data = std::move(data);
 
   if (last_X_col < 0 || last_X_col >= my_data.n_cols() - 1)
     throw std::runtime_error("Invalid last X column index!");
 
-  auto my_data_T = ttb::Converter::torch_tensor<T>(std::move(my_data));
+  auto my_data_T = ttb::Converter::torch_tensor<T>(std::move(my_data), device);
 
   this->update_X_Y(std::move(my_data_T), last_X_col);
 };
 
 template <ttb::utl::NumericType T>
-ttb::XYMatrix::XYMatrix(ttb::TbNumeric<T> &&X, ttb::TbNumeric<T> &&Y) {
+ttb::XYMatrix::XYMatrix(ttb::TbNumeric<T> &&X, ttb::TbNumeric<T> &&Y, const torch::Device &device) {
   auto my_X = std::move(X);
   auto my_Y = std::move(Y);
 
   if (my_X.n_rows() != my_Y.n_rows())
     throw std::runtime_error("Incompatible tensors!");
 
-  auto X_T = ttb::Converter::torch_tensor<T>(std::move(my_X));
-  auto Y_T = ttb::Converter::torch_tensor<T>(std::move(my_Y));
+  auto X_T = ttb::Converter::torch_tensor<T>(std::move(my_X), device);
+  auto Y_T = ttb::Converter::torch_tensor<T>(std::move(my_Y), device);
   _X = ttb::utl::new_unp<torch::Tensor>(std::move(X_T));
   _Y = ttb::utl::new_unp<torch::Tensor>(std::move(Y_T));
 }
@@ -217,8 +217,9 @@ void ttb::XYMatrix::update_X_Y(torch::Tensor &&XY, int last_col_X) {
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INSTANTIATE_XYTABLE_TEMPLATES(T)                                                           \
-  template ttb::XYMatrix::XYMatrix(ttb::AnalyticTableNumeric<T> &&, int);                          \
-  template ttb::XYMatrix::XYMatrix(ttb::TbNumeric<T> &&, ttb::TbNumeric<T> &&);
+  template ttb::XYMatrix::XYMatrix(ttb::AnalyticTableNumeric<T> &&, int, const torch::Device &);   \
+  template ttb::XYMatrix::XYMatrix(ttb::TbNumeric<T> &&, ttb::TbNumeric<T> &&,                     \
+                                   const torch::Device &);
 
 INSTANTIATE_XYTABLE_TEMPLATES(int)
 INSTANTIATE_XYTABLE_TEMPLATES(int64_t)

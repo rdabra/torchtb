@@ -24,13 +24,14 @@ class Converter {
     ~Converter() = default;
 
     template <ttb::utl::NumericType T>
-    static torch::Tensor torch_tensor(ttb::AnalyticTableNumeric<T> &&data);
+    static torch::Tensor torch_tensor(ttb::AnalyticTableNumeric<T> &&data,
+                                      const torch::Device &device);
 
     template <ttb::utl::NumericType T>
-    static torch::Tensor torch_tensor(ttb::IO_FileCSV &&reader);
+    static torch::Tensor torch_tensor(ttb::IO_FileCSV &&reader, const torch::Device &device);
 
     template <ttb::utl::NumericType T>
-    static torch::Tensor torch_tensor(ttb::IO_FileParquet &&reader);
+    static torch::Tensor torch_tensor(ttb::IO_FileParquet &&reader, const torch::Device &device);
 
     template <ttb::utl::NumericType T>
     static ttb::AnalyticTableNumeric<T> analytic_table(torch::Tensor &&tensor);

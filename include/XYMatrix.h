@@ -19,10 +19,10 @@ class XYMatrix {
     ~XYMatrix() = default;
 
     template <ttb::utl::NumericType T>
-    XYMatrix(ttb::TbNumeric<T> &&data, int last_X_col);
+    XYMatrix(ttb::TbNumeric<T> &&data, int last_X_col, const torch::Device &device);
 
     template <ttb::utl::NumericType T>
-    XYMatrix(ttb::TbNumeric<T> &&X, ttb::TbNumeric<T> &&Y);
+    XYMatrix(ttb::TbNumeric<T> &&X, ttb::TbNumeric<T> &&Y, const torch::Device &device);
 
     XYMatrix(torch::Tensor &&data, int last_col_X);
     XYMatrix(torch::Tensor &&X, torch::Tensor &&Y);

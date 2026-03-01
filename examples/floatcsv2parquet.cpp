@@ -1,5 +1,5 @@
-#include "IO_FileCSV.h"
 #include "Converter.h"
+#include "IO_FileCSV.h"
 #include "IO_FileParquet.h"
 #include "detail/ttbutils.h"
 #include <chrono>
@@ -28,7 +28,8 @@ int main(int argc, char *argv[]) {
   auto in_file = ttb::IO_FileCSV{in_path, false};
   auto r_in_data = in_file.read();
 
-  auto T = ttb::Converter::torch_tensor<float>(std::move(r_in_data));
+  torch::Device device(torch::cuda::is_available() ? torch::kCUDA : torch::kCPU);
+  auto T = ttb::Converter::torch_tensor<float>(std::move(r_in_data), device);
 
   std::cout << "Writing output file..." << std::endl;
   auto out_file = ttb::IO_FileParquet{out_path};

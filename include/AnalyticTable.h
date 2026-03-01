@@ -39,9 +39,9 @@ struct Criterion {
  */
 class AnalyticTable {
   public:
-    AnalyticTable(const AnalyticTable &) = delete;
+    AnalyticTable(const AnalyticTable &) = default;
     AnalyticTable(AnalyticTable &&) = default;
-    AnalyticTable &operator=(const AnalyticTable &) = delete;
+    AnalyticTable &operator=(const AnalyticTable &) = default;
     AnalyticTable &operator=(AnalyticTable &&) = default;
     virtual ~AnalyticTable() = default;
 
@@ -55,7 +55,7 @@ class AnalyticTable {
     [[nodiscard]] std::vector<bool> numeric_cols() const;
     [[nodiscard]] std::optional<int> col_index(std::string name) const;
 
-    void remove_col(int index);
+    void drop_cols(const std::vector<int> &indices);
     void keep_cols(const std::vector<int> &indices);
     void keep_numeric_cols();
     void append(const AnalyticTable &table, const ttb::Axis &axis);
@@ -118,12 +118,17 @@ class AnalyticTable {
     void print_tail(int64_t n_rows = 20) const;
     void reset();
 
+    template <ttb::utl::NumericType T>
+    std::vector<T> column_as_vector(int col_index) const;
+
     [[nodiscard]] const ttb::utl::shp<arrow::Table> &arrow_table() const { return _arrow_tb; }
 
   protected:
     AnalyticTable() = default;
 
     ttb::utl::shp<arrow::Table> _arrow_tb{nullptr};
+
+    void drop_col(int index);
 
     void bottom_append(const AnalyticTable &table);
     void right_append(const AnalyticTable &table);
@@ -133,6 +138,8 @@ class AnalyticTable {
 
     ttb::utl::shp<arrow::Table>
     submit_expressions(const std::vector<arrow::compute::Expression> expressions, ttb::LogicOp op);
+
+    [[nodiscard]] ttb::utl::shp<arrow::Array> to_array(const ttb::AnalyticTable &col_table) const;
 };
 
 class AnalyticTableError : public std::runtime_error {

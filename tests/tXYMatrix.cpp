@@ -196,7 +196,7 @@ TEST(XYMatrix_Test, BuildsFromAnalyticTableNumericFloat) {
   auto Xtb = make_numeric_table_T<float>(rows, xcols);
   auto Ytb = make_numeric_table_T<float>(rows, ycols);
 
-  XYMatrix xy(std::move(Xtb), std::move(Ytb));
+  XYMatrix xy(std::move(Xtb), std::move(Ytb), torch::Device(torch::kCPU));
   EXPECT_EQ(xy.X().sizes(), torch::IntArrayRef({rows, xcols}));
   EXPECT_EQ(xy.Y().sizes(), torch::IntArrayRef({rows, ycols}));
 }

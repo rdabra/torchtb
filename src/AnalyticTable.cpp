@@ -62,7 +62,7 @@ int ttb::AnalyticTable::n_cols() const {
   return _arrow_tb->num_columns();
 }
 
-void ttb::AnalyticTable::remove_col(int col_index) {
+void ttb::AnalyticTable::drop_col(int col_index) {
   if (col_index < 0 || std::cmp_greater_equal(col_index, this->n_cols()))
     throw AnalyticTableError("col_index out of bounds");
 
@@ -71,6 +71,13 @@ void ttb::AnalyticTable::remove_col(int col_index) {
     throw AnalyticTableError(aux.status().ToString());
 
   _arrow_tb = aux.MoveValueUnsafe();
+}
+
+void ttb::AnalyticTable::drop_cols(const std::vector<int> &indices) {
+  auto my_indices{indices};
+  std::ranges::sort(my_indices, std::greater<>{});
+  for (int i{0}; std::cmp_less(i, my_indices.size()); ++i)
+    this->drop_col(my_indices[i]);
 }
 
 void ttb::AnalyticTable::keep_cols(const std::vector<int> &indices) {
@@ -87,7 +94,7 @@ void ttb::AnalyticTable::keep_numeric_cols() {
   int col = 0;
   while (numeric_cols.size() > 0) {
     if (!numeric_cols.front())
-      this->remove_col(col);
+      this->drop_col(col);
     else
       ++col;
     numeric_cols.pop_front();
@@ -181,6 +188,19 @@ ttb::AnalyticTable::submit_expressions(const std::vector<arrow::compute::Express
     throw ttb::AnalyticTableError(r_resp.status().ToString());
 
   return r_resp.ValueUnsafe();
+}
+
+ttb::utl::shp<arrow::Array>
+ttb::AnalyticTable::to_array(const ttb::AnalyticTable &col_table) const {
+  auto chunks = col_table.arrow_table()->column(0)->chunks();
+
+  auto r_col_as_array = arrow::Concatenate(chunks, arrow::default_memory_pool());
+  if (!r_col_as_array.ok())
+    throw ttb::AnalyticTableError(r_col_as_array.status().ToString());
+
+  auto column = r_col_as_array.MoveValueUnsafe();
+
+  return column;
 }
 
 void ttb::AnalyticTable::append(const AnalyticTable &table, const ttb::Axis &axis) {
@@ -370,17 +390,17 @@ void ttb::AnalyticTable::drop_duplicates() {
 
 namespace one_hot_expand {
 
-ttb::utl::shp<arrow::Array> to_array(const ttb::AnalyticTable &col_clone) {
-  auto chunks = col_clone.arrow_table()->column(0)->chunks();
+// ttb::utl::shp<arrow::Array> to_array(const ttb::AnalyticTable &col_clone) {
+//   auto chunks = col_clone.arrow_table()->column(0)->chunks();
 
-  auto r_col_as_array = arrow::Concatenate(chunks, arrow::default_memory_pool());
-  if (!r_col_as_array.ok())
-    throw ttb::AnalyticTableError(r_col_as_array.status().ToString());
+//   auto r_col_as_array = arrow::Concatenate(chunks, arrow::default_memory_pool());
+//   if (!r_col_as_array.ok())
+//     throw ttb::AnalyticTableError(r_col_as_array.status().ToString());
 
-  auto column = r_col_as_array.MoveValueUnsafe();
+//   auto column = r_col_as_array.MoveValueUnsafe();
 
-  return column;
-}
+//   return column;
+// }
 
 ttb::utl::shp<arrow::Array> build_one_hot_col(const ttb::utl::shp<arrow::Array> &col_as_array,
                                               const ttb::utl::shp<arrow::Scalar> &distinct_value) {
@@ -414,7 +434,7 @@ void ttb::AnalyticTable::one_hot_expand(int col_index) {
     throw AnalyticTableError("Index out of bounds");
 
   auto col_clone = this->copy_cols({col_index});
-  auto col_array = one_hot_expand::to_array(col_clone);
+  auto col_array = this->to_array(col_clone);
   auto field_names = arrow::compute::Unique(col_array).ValueOrDie();
 
   auto n_fields = field_names->length();
@@ -440,7 +460,7 @@ void ttb::AnalyticTable::one_hot_expand(int col_index) {
   auto schema = arrow::schema(fields);
   ttb::AnalyticTable table{arrow::Table::Make(schema, one_hot_cols, col_array->length())};
   this->append(table, ttb::Axis::COLUMN);
-  this->remove_col(col_index);
+  this->drop_col(col_index);
 }
 
 ttb::AnalyticTable ttb::AnalyticTable::extract_column(int col_index) {
@@ -543,3 +563,29 @@ ttb::AnalyticTable ttb::AnalyticTable::clone() const {
 
   return AnalyticTable{std::move(aux)};
 }
+
+template <ttb::utl::NumericType T>
+std::vector<T> ttb::AnalyticTable::column_as_vector(int col_index) const {
+  auto col_table = this->copy_cols({col_index});
+  auto col_array = std::static_pointer_cast<ttb::utl::ArrowArrayType<T>>(this->to_array(col_table));
+  auto n_rows = col_array->length();
+
+  std::vector<T> resp;
+  resp.reserve(n_rows);
+
+  for (int64_t i{0}; i < n_rows; ++i)
+    resp.emplace_back(col_array->Value(i));
+
+  return resp;
+}
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define INSTANTIATE_ANALYTIC_TABLE_FUNCS(T)                                                        \
+  template std::vector<T> ttb::AnalyticTable::column_as_vector<T>(int col_index) const;
+
+INSTANTIATE_ANALYTIC_TABLE_FUNCS(int)
+INSTANTIATE_ANALYTIC_TABLE_FUNCS(int64_t)
+INSTANTIATE_ANALYTIC_TABLE_FUNCS(float)
+INSTANTIATE_ANALYTIC_TABLE_FUNCS(double)
+
+#undef INSTANTIATE_ANALYTIC_TABLE_FUNCS

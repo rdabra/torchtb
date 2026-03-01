@@ -83,6 +83,24 @@ TEST(AnalyticTable_Test, ReturnsColumnTypes) {
   EXPECT_EQ(types[1], "float");
 }
 
+TEST(AnalyticTable_Test, ColumnAsVectorReturnsValues) {
+  auto table = make_simple_table(4);
+
+  auto ints = table.column_as_vector<int64_t>(0);
+  ASSERT_EQ(ints.size(), 4u);
+  EXPECT_EQ(ints[0], 0);
+  EXPECT_EQ(ints[1], 10);
+  EXPECT_EQ(ints[2], 20);
+  EXPECT_EQ(ints[3], 30);
+
+  auto floats = table.column_as_vector<float>(1);
+  ASSERT_EQ(floats.size(), 4u);
+  EXPECT_FLOAT_EQ(floats[0], 0.0f);
+  EXPECT_FLOAT_EQ(floats[1], 1.5f);
+  EXPECT_FLOAT_EQ(floats[2], 3.0f);
+  EXPECT_FLOAT_EQ(floats[3], 4.5f);
+}
+
 TEST(AnalyticTable_Test, FindsExistingColumn) {
   auto table = make_simple_table();
   auto idx = table.col_index("col_float");
@@ -98,7 +116,7 @@ TEST(AnalyticTable_Test, ReturnsNulloptForMissing) {
 
 TEST(AnalyticTable_Test, RemovesColumnByIndex) {
   auto table = make_simple_table();
-  table.remove_col(0);
+  table.drop_cols({0});
   EXPECT_EQ(table.n_cols(), 1);
   auto names = table.col_names();
   EXPECT_EQ(names[0], "col_float");
@@ -106,8 +124,70 @@ TEST(AnalyticTable_Test, RemovesColumnByIndex) {
 
 TEST(AnalyticTable_Test, FailsOnInvalidIndex) {
   auto table = make_simple_table();
-  EXPECT_THROW(table.remove_col(99), ttb::AnalyticTableError);
+  EXPECT_THROW(table.drop_cols({99}), ttb::AnalyticTableError);
   EXPECT_EQ(table.n_cols(), 2); // unchanged
+}
+
+TEST(AnalyticTable_Test, DropsSpecifiedColumns) {
+  arrow::Int64Builder ib;
+  arrow::FloatBuilder fb;
+  arrow::DoubleBuilder db;
+
+  EXPECT_TRUE(ib.AppendValues({1, 2, 3}).ok());
+  EXPECT_TRUE(fb.AppendValues({1.5f, 2.5f, 3.5f}).ok());
+  EXPECT_TRUE(db.AppendValues({10.0, 20.0, 30.0}).ok());
+
+  std::shared_ptr<arrow::Array> icol, fcol, dcol;
+  EXPECT_TRUE(ib.Finish(&icol).ok());
+  EXPECT_TRUE(fb.Finish(&fcol).ok());
+  EXPECT_TRUE(db.Finish(&dcol).ok());
+
+  auto schema =
+      arrow::schema({arrow::field("a", arrow::int64()), arrow::field("b", arrow::float32()),
+                     arrow::field("c", arrow::float64())});
+  auto tbl = arrow::Table::Make(schema, {icol, fcol, dcol});
+  ttb::AnalyticTable table{std::move(tbl)};
+
+  table.drop_cols({1});
+
+  EXPECT_EQ(table.n_cols(), 2);
+  EXPECT_EQ(table.n_rows(), 3);
+  auto names = table.col_names();
+  ASSERT_EQ(names.size(), 2u);
+  EXPECT_EQ(names[0], "a");
+  EXPECT_EQ(names[1], "c");
+}
+
+TEST(AnalyticTable_Test, DropsMultipleColumns) {
+  arrow::Int64Builder ib;
+  arrow::FloatBuilder fb;
+  arrow::DoubleBuilder db;
+  arrow::Int32Builder xb;
+
+  EXPECT_TRUE(ib.AppendValues({1, 2}).ok());
+  EXPECT_TRUE(fb.AppendValues({1.5f, 2.5f}).ok());
+  EXPECT_TRUE(db.AppendValues({10.0, 20.0}).ok());
+  EXPECT_TRUE(xb.AppendValues({7, 8}).ok());
+
+  std::shared_ptr<arrow::Array> icol, fcol, dcol, xcol;
+  EXPECT_TRUE(ib.Finish(&icol).ok());
+  EXPECT_TRUE(fb.Finish(&fcol).ok());
+  EXPECT_TRUE(db.Finish(&dcol).ok());
+  EXPECT_TRUE(xb.Finish(&xcol).ok());
+
+  auto schema =
+      arrow::schema({arrow::field("a", arrow::int64()), arrow::field("b", arrow::float32()),
+                     arrow::field("c", arrow::float64()), arrow::field("d", arrow::int32())});
+  auto tbl = arrow::Table::Make(schema, {icol, fcol, dcol, xcol});
+  ttb::AnalyticTable table{std::move(tbl)};
+
+  table.drop_cols({1, 3});
+
+  EXPECT_EQ(table.n_cols(), 2);
+  auto names = table.col_names();
+  ASSERT_EQ(names.size(), 2u);
+  EXPECT_EQ(names[0], "a");
+  EXPECT_EQ(names[1], "c");
 }
 
 TEST(AnalyticTable_Test, KeepsSpecifiedColumns) {
@@ -135,10 +215,9 @@ TEST(AnalyticTable_Test, KeepNumericColsRemovesAllNonNumericColumns) {
   ASSERT_TRUE(score_builder.Finish(&score_array).ok());
   ASSERT_TRUE(note_builder.Finish(&note_array).ok());
 
-  auto schema = arrow::schema({arrow::field("id", arrow::int64()),
-                               arrow::field("label", arrow::utf8()),
-                               arrow::field("score", arrow::float32()),
-                               arrow::field("note", arrow::utf8())});
+  auto schema =
+      arrow::schema({arrow::field("id", arrow::int64()), arrow::field("label", arrow::utf8()),
+                     arrow::field("score", arrow::float32()), arrow::field("note", arrow::utf8())});
   auto arrow_table = arrow::Table::Make(schema, {id_array, label_array, score_array, note_array});
   ttb::AnalyticTable table{ttb::utl::shp<arrow::Table>(arrow_table)};
 
@@ -228,7 +307,7 @@ TEST(AnalyticTable_Test, CreatesIndependentCopy) {
   EXPECT_EQ(res.n_cols(), table.n_cols());
 
   // Modify clone
-  res.remove_col(0);
+  res.drop_cols({0});
   EXPECT_EQ(res.n_cols(), 1);
   // Original unchanged
   EXPECT_EQ(table.n_cols(), 2);

@@ -24,13 +24,13 @@
 namespace torch_tensor {
 
 template <ttb::utl::NumericType T>
-torch::Tensor to_tensor(const ttb::utl::shp<arrow::Array> &arr) {
+torch::Tensor to_tensor(const ttb::utl::shp<arrow::Array> &arr, const torch::Device &device) {
   if (arr->null_count() != 0)
     throw std::runtime_error("Column has nulls");
 
   auto casted_col = std::static_pointer_cast<ttb::utl::ArrowArrayType<T>>(arr);
   auto torch_type = ttb::utl::torch_type<T>();
-  auto opt = torch::TensorOptions().dtype(torch_type);
+  auto opt = torch::TensorOptions().dtype(torch_type).device(device);
   auto tensor = torch::empty({casted_col->length(), 1}, opt);
   std::memcpy(tensor.template data_ptr<T>(), casted_col->raw_values(),
               casted_col->length() * sizeof(T));
@@ -40,7 +40,8 @@ torch::Tensor to_tensor(const ttb::utl::shp<arrow::Array> &arr) {
 } // namespace torch_tensor
 
 template <ttb::utl::NumericType T>
-torch::Tensor ttb::Converter::torch_tensor(ttb::AnalyticTableNumeric<T> &&data) {
+torch::Tensor ttb::Converter::torch_tensor(ttb::AnalyticTableNumeric<T> &&data,
+                                           const torch::Device &device) {
   auto my_data = std::move(data);
   my_data.null_to_zero();
 
@@ -48,7 +49,7 @@ torch::Tensor ttb::Converter::torch_tensor(ttb::AnalyticTableNumeric<T> &&data) 
   for (int i{0}; i < my_data.n_cols(); ++i) {
     auto column = my_data.copy_cols({i});
     auto arr = column.arrow_table()->column(0)->chunk(0);
-    tensors.emplace_back(torch_tensor::to_tensor<T>(arr));
+    tensors.emplace_back(torch_tensor::to_tensor<T>(arr, device));
   }
   my_data.reset();
 
@@ -98,28 +99,32 @@ ttb::AnalyticTableNumeric<T> ttb::Converter::analytic_table(torch::Tensor &&tens
 };
 
 template <ttb::utl::NumericType T>
-torch::Tensor ttb::Converter::torch_tensor(ttb::IO_FileCSV &&reader) {
+torch::Tensor ttb::Converter::torch_tensor(ttb::IO_FileCSV &&reader, const torch::Device &device) {
   auto my_reader = std::move(reader);
 
   auto read = my_reader.read_numeric<T>();
 
-  return ttb::Converter::torch_tensor<T>(std::move(read));
+  return ttb::Converter::torch_tensor<T>(std::move(read), device);
 }
 
 template <ttb::utl::NumericType T>
-torch::Tensor ttb::Converter::torch_tensor(ttb::IO_FileParquet &&reader) {
+torch::Tensor ttb::Converter::torch_tensor(ttb::IO_FileParquet &&reader,
+                                           const torch::Device &device) {
   auto my_reader = std::move(reader);
   auto r_data = my_reader.read_numeric<T>();
 
-  return ttb::Converter::torch_tensor<T>(std::move(r_data));
+  return ttb::Converter::torch_tensor<T>(std::move(r_data), device);
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INSTANTIATE_CONVERTER_FUNCS(T)                                                             \
-  template torch::Tensor ttb::Converter::torch_tensor(ttb::AnalyticTableNumeric<T> &&);            \
+  template torch::Tensor ttb::Converter::torch_tensor(ttb::AnalyticTableNumeric<T> &&,             \
+                                                      const torch::Device &);                      \
   template ttb::AnalyticTableNumeric<T> ttb::Converter::analytic_table(torch::Tensor &&);          \
-  template torch::Tensor ttb::Converter::torch_tensor<T>(ttb::IO_FileCSV &&);                      \
-  template torch::Tensor ttb::Converter::torch_tensor<T>(ttb::IO_FileParquet &&);
+  template torch::Tensor ttb::Converter::torch_tensor<T>(ttb::IO_FileCSV &&,                       \
+                                                         const torch::Device &);                   \
+  template torch::Tensor ttb::Converter::torch_tensor<T>(ttb::IO_FileParquet &&,                   \
+                                                         const torch::Device &);
 
 INSTANTIATE_CONVERTER_FUNCS(int)
 INSTANTIATE_CONVERTER_FUNCS(int64_t)

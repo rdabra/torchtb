@@ -58,7 +58,7 @@ static ttb::AnalyticTableNumeric<float> make_numeric_table_float(int64_t rows = 
 
 TEST(Converter_Test, ConvertsDataTableNumericFloat) {
   auto table = tconverter::make_numeric_table_float(5, 3);
-  auto tensor = ttb::Converter::torch_tensor(std::move(table));
+  auto tensor = ttb::Converter::torch_tensor(std::move(table), torch::Device(torch::kCPU));
 
   EXPECT_EQ(tensor.dim(), 2);
   EXPECT_EQ(tensor.size(0), 5);
@@ -82,7 +82,7 @@ TEST(Converter_Test, ConvertsDataTableNumericDouble) {
   auto table = arrow::Table::Make(schema, arrays);
   ttb::AnalyticTableNumeric<double> dt{std::move(table)};
 
-  auto tensor = ttb::Converter::torch_tensor(std::move(dt));
+  auto tensor = ttb::Converter::torch_tensor(std::move(dt), torch::Device(torch::kCPU));
   EXPECT_EQ(tensor.dim(), 2);
   EXPECT_EQ(tensor.size(0), 4);
   EXPECT_EQ(tensor.size(1), 1);
@@ -94,7 +94,7 @@ TEST(Converter_Test, ReadsCSVAndConvertToTensor) {
   tconverter::write_csv(path, "a,b\n1.0,2.0\n3.0,4.0\n5.0,6.0\n");
 
   ttb::IO_FileCSV reader(path, true);
-  auto tensor = ttb::Converter::torch_tensor<float>(std::move(reader));
+  auto tensor = ttb::Converter::torch_tensor<float>(std::move(reader), torch::Device(torch::kCPU));
   EXPECT_EQ(tensor.dim(), 2);
   EXPECT_EQ(tensor.size(0), 3);
   EXPECT_EQ(tensor.size(1), 2);
@@ -106,7 +106,8 @@ TEST(Converter_Test, FailsOnMissingFile) {
   auto path = tconverter::unique_file("missing_csv", ".csv");
 
   ttb::IO_FileCSV reader(path, true);
-  EXPECT_THROW(ttb::Converter::torch_tensor<float>(std::move(reader)), ttb::IO_FileCSVError);
+  EXPECT_THROW(ttb::Converter::torch_tensor<float>(std::move(reader), torch::Device(torch::kCPU)),
+               ttb::IO_FileCSVError);
 }
 
 TEST(Converter_Test, ReadsParquetAndConvertsToTensor) {
@@ -127,7 +128,7 @@ TEST(Converter_Test, ReadsParquetAndConvertsToTensor) {
 
   // Now read it back
   ttb::IO_FileParquet reader(path);
-  auto tensor = ttb::Converter::torch_tensor<float>(std::move(reader));
+  auto tensor = ttb::Converter::torch_tensor<float>(std::move(reader), torch::Device(torch::kCPU));
   EXPECT_EQ(tensor.dim(), 2);
   EXPECT_EQ(tensor.size(0), 3);
 
@@ -138,7 +139,8 @@ TEST(Converter_Test, FailsOnMissingFileFromParquet) {
   auto path = tconverter::unique_file("missing_pq", ".parquet");
 
   ttb::IO_FileParquet reader(path);
-  EXPECT_THROW(ttb::Converter::torch_tensor<float>(std::move(reader)), ttb::IO_FileParquetError);
+  EXPECT_THROW(ttb::Converter::torch_tensor<float>(std::move(reader), torch::Device(torch::kCPU)),
+               ttb::IO_FileParquetError);
 }
 
 TEST(Converter_Test, ConvertsTensorToDataTableFloat) {
@@ -165,7 +167,7 @@ TEST(Converter_Test, FailsOnNonFloat32Tensor) {
 
 TEST(Converter_Test, RoundTripPreservesData) {
   auto original_table = tconverter::make_numeric_table_float(4, 3);
-  auto tensor = ttb::Converter::torch_tensor(std::move(original_table));
+  auto tensor = ttb::Converter::torch_tensor(std::move(original_table), torch::Device(torch::kCPU));
 
   auto recovered_table = ttb::Converter::analytic_table<float>(std::move(tensor));
   EXPECT_EQ(recovered_table.n_rows(), 4);
